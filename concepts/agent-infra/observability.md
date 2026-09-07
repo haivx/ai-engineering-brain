@@ -1,0 +1,2 @@
+# Observability
+Observability is the ability to trace every step an agent takes—its inputs, reasoning, tool calls, and outputs—so behavior can be inspected and debugged after the fact. Agents make many autonomous decisions per run, and without a record of what happened at each step, diagnosing why an agent failed or behaved unexpectedly becomes guesswork. Investing in observability turns opaque agent runs into something a developer can actually audit, measure, and improve over time.
