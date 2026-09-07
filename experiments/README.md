@@ -1,13 +1,13 @@
 # experiments/
 
-Kết quả eval bạn TỰ chạy trên task của mình. Phần giá trị nhất của cả KB:
-không phân rã, không tra Google được, không ai khác có.
+Eval results you ran YOURSELF on your own tasks. The most valuable part of the whole KB:
+it doesn't decay, you can't Google it, and nobody else has it.
 
-## Mỗi lần eval → một file
-Đặt tên: `YYYY-MM-DD_<task>.md`. Gợi ý nội dung:
-- Task & eval set dùng gì (link tới file cases nếu có).
-- Model đã so + version/string.
-- Bảng kết quả: pass rate, giá, tốc độ.
-- Kết luận: model nào đủ tốt cho khâu nào → feed ngược vào quyết định routing.
+## One eval run → one file
+Naming: `YYYY-MM-DD_<task>.md`. Suggested contents:
+- The task & which eval set was used (link to the cases file if there is one).
+- Models compared + version/string.
+- Results table: pass rate, price, speed.
+- Conclusion: which model is good enough for which stage → feed this back into routing decisions.
 
-Kiến thức đi mượn nằm ở references/. Kiến thức SỞ HỮU nằm ở đây.
+Borrowed knowledge lives in references/. OWNED knowledge lives here.

@@ -1,23 +1,23 @@
 # Routing
 
-Kỹ năng lõi của AI Engineering: **dùng model rẻ cho phần dễ, chỉ escalate lên model đắt ở phần khó.**
+The core skill of AI Engineering: **use a cheap model for the easy parts, and escalate to an expensive model only for the hard parts.**
 
-## Vì sao
-"Model nào tốt nhất" là câu hỏi sai. Câu đúng: "phần việc NÀO cần model mạnh, phần nào model rẻ là đủ?"
-Một task thường gồm nhiều bước độ khó khác nhau. Bắt Opus làm cả những bước tầm thường = đốt tiền vô ích.
-Bắt model rẻ làm bước khó = hỏng việc, tốn công sửa.
+## Why
+"Which model is best" is the wrong question. The right one: "WHICH part of the work needs a strong model, and which part is fine with a cheap one?"
+A task usually consists of steps of varying difficulty. Making Opus do the trivial steps too = burning money for nothing.
+Making a cheap model do the hard step = broken work and wasted effort fixing it.
 
-## Ba tầng model (khung để phân loại task)
-- **Frontier đóng** (Opus, GPT lớn, Gemini Pro): cho ~20% task khó nhất — kiến trúc phức tạp,
-  debug hiểm, agent loop dài.
-- **Rẻ-mà-tốt** (Sonnet, DeepSeek Flash...): daily driver, phần lớn việc thường ngày.
-- **Open-weight rẻ / self-host**: việc lặt vặt, boilerplate, extraction, format.
-  (Tên model chỉ là ví dụ — chúng xoay vòng liên tục. Xem references/leaderboards.md để tra bản mới.)
+## The three model tiers (a frame for classifying tasks)
+- **Closed frontier** (Opus, the big GPTs, Gemini Pro): for the hardest ~20% of tasks — complex architecture,
+  nasty debugging, long agent loops.
+- **Cheap-but-good** (Sonnet, DeepSeek Flash...): the daily driver, most everyday work.
+- **Cheap open-weight / self-hosted**: odds and ends, boilerplate, extraction, formatting.
+  (Model names are only examples — they rotate constantly. See references/leaderboards.md to look up the current ones.)
 
-## Điều kiện tiên quyết
-Muốn route đúng thì phải biết "model rẻ đủ tốt cho khâu nào" → phải ĐO → phải có eval set.
-Xem concepts/eval.md. Không có eval thì routing chỉ là đoán mò.
+## Prerequisite
+To route correctly you must know "which stage a cheap model is good enough for" → you must MEASURE → you need an eval set.
+See concepts/eval.md. Without an eval, routing is just guesswork.
 
-## Cạm bẫy: sai số cộng dồn
-Trong agent loop nhiều bước, model rẻ lệch 5% mỗi bước → qua 10 bước lệch hẳn.
-Đây là lý do reasoning nhiều bước thường phải dùng model mạnh, dù từng bước nhìn có vẻ đơn giản.
+## Pitfall: compounding error
+In a multi-step agent loop, a cheap model that's 5% off at each step → is completely off after 10 steps.
+This is why multi-step reasoning usually has to use a strong model, even when each individual step looks simple.

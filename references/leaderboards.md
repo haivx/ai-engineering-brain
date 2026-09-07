@@ -1,20 +1,20 @@
-# References: bảng xếp hạng & cách tra
+# References: leaderboards & how to look things up
 
-> KHÔNG chép số liệu/giá vào đây — chúng phân rã nhanh. Chỉ lưu LINK + CÁCH TRA.
+> Do NOT copy figures/prices in here — they decay fast. Store only LINKS + THE LOOKUP PROCEDURE.
 
-## Nguồn chính
+## Primary sources
 - **Artificial Analysis** — https://artificialanalysis.ai/
-  Tổng hợp uy tín nhất: intelligence, coding, agentic + tốc độ & giá theo provider.
-  Nhiều bảng khác lấy data từ đây.
+  The most credible aggregate: intelligence, coding, agentic + speed & price per provider.
+  Many other tables pull their data from here.
 - **OpenRouter Rankings** — https://openrouter.ai/rankings
-  Xếp theo lượng token dev THỰC SỰ dùng ("thị trường bỏ phiếu"). Có giá từng provider.
+  Ranked by tokens developers ACTUALLY use ("the market votes"). Includes per-provider pricing.
 - **LLM-Stats** — https://llm-stats.com/leaderboards/llm-leaderboard
-  Lọc theo trục: coding / cheapest / open-weight / speed. Tiện chọn model rẻ.
+  Filter by axis: coding / cheapest / open-weight / speed. Handy for picking a cheap model.
 - **LMArena** — https://lmarena.ai/
-  Bình chọn mù của người (Elo). Bù benchmark, nhưng thiên vị câu dài/đẹp.
+  Blind human voting (Elo). A complement to benchmarks, but biased toward long/pretty answers.
 
-## Cách tra (quy trình, không phải kết quả)
-- Cần model rẻ nhất đủ dùng → LLM-Stats lọc "cheapest" → check lại giá thật ở OpenRouter.
-- Cần model coding tốt nhất → Artificial Analysis cột coding/agentic.
-- Đừng tin một bảng duy nhất; mỗi bảng đo một trục. Đối chiếu 2 nguồn.
-- Mọi con số phải xem TẠI THỜI ĐIỂM cần — đừng nhớ, đừng chép cứng.
+## How to look things up (the procedure, not the results)
+- Need the cheapest model that's good enough → filter "cheapest" on LLM-Stats → re-check the real price on OpenRouter.
+- Need the best coding model → the coding/agentic columns on Artificial Analysis.
+- Don't trust a single table; each one measures a different axis. Cross-check two sources.
+- Every number must be checked AT THE MOMENT you need it — don't memorize it, don't hardcode it.

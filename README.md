@@ -1,27 +1,27 @@
 # ai-engineering-brain
 
-Bộ não thứ hai (knowledge base) cho mảng **AI Engineering**.
-Là repo Git + đồng thời là một Obsidian vault (chỉ cần "Open folder as vault").
+A second brain (knowledge base) for **AI Engineering**.
+It is a Git repo and, at the same time, an Obsidian vault (just "Open folder as vault").
 
-## KB này dùng để làm gì
-- Nơi tra cứu kiến thức đã học, có tổ chức.
-- **Context layer cho Claude Code**: vì toàn bộ là markdown trong repo, agent đọc được.
-  Ví dụ: "áp routing như trong `concepts/routing.md`" → nó tự đọc và làm theo.
+## What this KB is for
+- A place to look up what you've learned, kept organized.
+- **Context layer for Claude Code**: since everything is markdown inside the repo, the agent can read it.
+  Example: "apply routing as described in `concepts/routing.md`" → it reads the file and follows it.
 
-## Nguyên tắc vàng
-> Lưu **cách tư duy** và **cách tra**, đừng lưu **con số**.
+## The golden rule
+> Store **ways of thinking** and **ways of looking things up** — not **numbers**.
 
-Giá token, model đang tốt nhất, bảng xếp hạng → phân rã trong vài tuần. KHÔNG chép vào đây.
-Mô hình tư duy (routing, eval, tier...) → không đổi. ĐÂY mới là thứ đáng viết.
-Phần volatile: chỉ lưu *quy trình tra* + link (xem `references/`).
+Token prices, the currently-best model, leaderboards → they decay within weeks. Do NOT copy them here.
+Mental models (routing, eval, tiers...) → they don't change. THOSE are worth writing down.
+For volatile stuff: store only the *lookup procedure* + links (see `references/`).
 
-## Cấu trúc
-- `concepts/`     — kiến thức BỀN: mô hình tư duy, nguyên lý.
-- `playbooks/`    — quy trình làm việc: "khi cần X thì làm theo các bước sau".
-- `references/`   — link tới nguồn ngoài + GHI CHÚ CÁCH TRA (không chép số liệu).
-- `experiments/`  — kết quả eval bạn TỰ chạy. Phần giá trị nhất: không ai có, không tra Google được.
+## Structure
+- `concepts/`     — DURABLE knowledge: mental models, principles.
+- `playbooks/`    — working procedures: "when you need X, follow these steps".
+- `references/`   — links to external sources + NOTES ON HOW TO LOOK THINGS UP (no copied figures).
+- `experiments/`  — eval results you ran YOURSELF. The most valuable part: nobody else has it, you can't Google it.
 
-## Mục lục hiện có
+## Current table of contents
 - concepts: routing · eval · model-tiers · moe · inference-providers
 - playbooks: choose-cheap-model · build-eval-set
 - references: leaderboards

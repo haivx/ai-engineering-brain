@@ -1,26 +1,26 @@
-# Inference providers: tốc độ vs giá
+# Inference providers: speed vs price
 
-## Tách bạch hai thứ
-- **Model** quyết định CHẤT LƯỢNG câu trả lời.
-- **Provider** (nhà chạy inference) quyết định bạn nhận nó NHANH hay CHẬM, và GIÁ bao nhiêu.
-Cùng một model open có thể chạy trên nhiều provider, chất lượng gần như y hệt, giá & tốc độ chênh lớn.
+## Keep two things separate
+- The **model** determines the QUALITY of the answer.
+- The **provider** (whoever runs the inference) determines how FAST or SLOW you get it, and at what PRICE.
+The same open model can run on many providers with nearly identical quality but wildly different price & speed.
 
-## Đánh đổi cốt lõi
-- Provider tốc độ cao (vd chip chuyên inference, throughput ngàn token/s) → NHANH nhưng ĐẮT hơn.
-- Provider phổ thông → RẺ hơn nhiều nhưng chậm hơn.
-Chọn nhanh khi: realtime UX, agent loop nhiều bước, demo cần mượt.
-Chọn rẻ khi: batch không gấp, học/thử nghiệm.
+## The core trade-off
+- A high-speed provider (e.g. inference-specialized chips, throughput in the thousands of tokens/s) → FAST but MORE EXPENSIVE.
+- A commodity provider → much CHEAPER but slower.
+Pick fast when: realtime UX, multi-step agent loops, demos that need to feel smooth.
+Pick cheap when: batch work that isn't urgent, learning/experimenting.
 
-## LiteLLM + OpenRouter (stack hiện dùng)
-- **LiteLLM**: wrapper thống nhất, gọi mọi provider bằng cùng hàm `completion()` kiểu OpenAI.
-  Đổi model = đổi một string.
-- **OpenRouter**: router một-API-key truy cập nhiều model/provider. Trả trước bằng credit,
-  trừ ngầm theo token (không có màn xác nhận thanh toán mỗi lần gọi).
-- Ép provider cụ thể: nhét `{"provider": {"order": ["<tên>"]}}` qua `extra_body`.
-  Thêm `"allow_fallbacks": false` nếu muốn ép cứng, không cho rớt sang nhà khác.
-- Lưu ý: nếu provider chỉ định hết chỗ, OpenRouter tự fallback → kiểm tra tab Activity
-  xem request THẬT SỰ chạy nhà nào (giá/nhà hiển thị ở đó).
+## LiteLLM + OpenRouter (the current stack)
+- **LiteLLM**: a unified wrapper — call every provider through the same OpenAI-style `completion()` function.
+  Switching models = switching one string.
+- **OpenRouter**: a one-API-key router giving access to many models/providers. Pay up front with credits,
+  deducted silently per token (no payment-confirmation screen on every call).
+- Force a specific provider: pass `{"provider": {"order": ["<name>"]}}` via `extra_body`.
+  Add `"allow_fallbacks": false` if you want a hard pin with no falling back to another host.
+- Note: if the specified provider is at capacity, OpenRouter falls back automatically → check the Activity tab
+  to see which host the request ACTUALLY ran on (price/host are shown there).
 
-## An toàn chi phí
-Rủi ro đốt tiền nhanh nhất: agent kẹt vòng lặp retry chạy hàng nghìn lần.
-→ Đặt spending limit trên dashboard NGAY từ đầu.
+## Cost safety
+The fastest way to burn money: an agent stuck in a retry loop running thousands of times.
+→ Set a spending limit on the dashboard RIGHT from the start.

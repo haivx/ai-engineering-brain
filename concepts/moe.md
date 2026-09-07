@@ -1,13 +1,13 @@
-# MoE & vì sao model open rẻ
+# MoE & why cheap open models are cheap
 
 ## MoE (Mixture-of-Experts)
-Model có tổng N tham số nhưng mỗi lần forward pass chỉ *activate* một phần nhỏ.
-Ví dụ dạng "117B tổng, ~5B active/token": chạy nhẹ như model ~5B dù kiến thức của model lớn.
-→ inference rẻ và nhanh hơn nhiều so với model dense cùng cỡ.
+The model has N parameters in total, but each forward pass *activates* only a small fraction of them.
+For example the "117B total, ~5B active/token" shape: it runs as light as a ~5B model while holding the knowledge of a large one.
+→ inference is far cheaper and faster than a dense model of the same size.
 
-## Vì sao gọi API model open-weight lại rẻ đến vậy
-1. **Open-weight** = không có phí bản quyền, chỉ trả tiền hạ tầng (điện/GPU).
-2. **MoE** = ít tham số active → tốn ít compute mỗi token.
-3. Nhiều provider cạnh tranh host cùng một model → giá bị ép xuống.
+## Why calling an open-weight model's API is so cheap
+1. **Open-weight** = no licensing fees, you only pay for infrastructure (power/GPU).
+2. **MoE** = few active parameters → less compute per token.
+3. Many providers compete to host the same model → prices get pushed down.
 
-Kết quả: nhiều model open đủ tốt cho việc hằng ngày mà giá chỉ bằng vài % model đóng.
+The result: many open models are good enough for everyday work at a few percent of the price of a closed model.

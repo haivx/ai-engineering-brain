@@ -1,18 +1,18 @@
-# Playbook: dựng eval set tối giản
+# Playbook: building a minimal eval set
 
-Mục tiêu: so cùng một task qua nhiều model, chấm tự động, không cảm tính.
+Goal: compare the same task across multiple models, graded automatically, no gut feeling.
 
-## Các bước
-1. Thu 15–30 case đại diện cho việc bạn HAY làm (input + tiêu chí "đạt" định nghĩa trước).
-2. Một file cases (json/yaml). Mỗi case: prompt + cách kiểm tra kết quả.
-3. Một vòng lặp: với mỗi model string, gọi qua LiteLLM cùng bộ prompt, thu output.
-4. Chấm tự động theo loại:
-   - Code → chạy test, đếm pass rate.
-   - Structured output → Pydantic validate, đếm tỉ lệ parse pass.
-   - Tool-calling → so tool/tham số kỳ vọng.
-   - Chủ quan → LLM-as-judge (rubric hoặc so đôi A/B), nhớ điểm judge chỉ là tín hiệu.
-5. In bảng so sánh: model × (pass rate, giá, tốc độ).
-6. Lưu kết quả vào experiments/ — đây là data thật của BẠN, không tra Google được.
+## Steps
+1. Collect 15–30 cases representative of what you ACTUALLY do (input + a "pass" criterion defined up front).
+2. One cases file (json/yaml). Each case: prompt + how to check the result.
+3. One loop: for each model string, call it through LiteLLM with the same prompts and collect the outputs.
+4. Grade automatically, by type:
+   - Code → run the tests, count the pass rate.
+   - Structured output → validate with Pydantic, count the parse pass rate.
+   - Tool-calling → compare against the expected tool/arguments.
+   - Subjective → LLM-as-judge (rubric or A/B pairwise); remember the judge's score is only a signal.
+5. Print a comparison table: model × (pass rate, price, speed).
+6. Save the results to experiments/ — this is YOUR real data, not something you can Google.
 
-## Nguyên tắc
-Đo đừng đoán. Prior từ benchmark public không thay được eval trên task thật của bạn.
+## Principle
+Measure, don't guess. A prior from public benchmarks is no substitute for an eval on your real task.
