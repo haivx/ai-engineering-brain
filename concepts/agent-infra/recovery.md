@@ -1,0 +1,2 @@
+# Recovery
+Recovery covers the mechanisms that keep an agent functional when a step fails: retries for transient errors, fallbacks to alternate tools or strategies, and loop-guards that stop an agent from spinning forever on the same mistake. Agents operate in the real world—flaky APIs, ambiguous tool outputs, unexpected states—so failure is not an edge case but a routine part of execution. Without deliberate recovery design, a single failed step can silently derail an entire run or trap the agent in an unproductive retry loop.

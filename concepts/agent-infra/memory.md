@@ -1,0 +1,2 @@
+# Memory
+Memory is what an agent carries across executions, as opposed to state, which lives only inside one run. Short-term memory covers the working history of the current session—recent turns, retrieved facts, scratch notes—while long-term memory persists across sessions, letting an agent recall user preferences, past decisions, or accumulated knowledge. Getting this split right matters: too little long-term memory forces the agent to relearn context every time, while unbounded memory bloats prompts, slows retrieval, and can surface stale or irrelevant information.
