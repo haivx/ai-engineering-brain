@@ -1,0 +1,24 @@
+[
+  {"id": "billing_invoice",          "input": "invoice payment refund",                                    "expected": "billing"},
+  {"id": "billing_generic",          "input": "please send me the invoice for last month subscription",     "expected": "billing"},
+  {"id": "billing_receipt",          "input": "I need a receipt for my bill",                                "expected": "billing"},
+  {"id": "billing_weak_single",      "input": "there was a bill issue",                                     "expected": "billing"},
+
+  {"id": "technical_login",          "input": "login error crash bug",                                      "expected": "technical"},
+  {"id": "technical_timeout",        "input": "the app keeps timeout and freeze during login",               "expected": "technical"},
+  {"id": "technical_password",       "input": "I forgot my password and got a 500 error",                    "expected": "technical"},
+  {"id": "technical_weak_single",    "input": "there is a small bug",                                        "expected": "technical"},
+
+  {"id": "account_profile",          "input": "account profile username settings",                           "expected": "account"},
+  {"id": "account_signup",           "input": "I want to register a new account and update my email",        "expected": "account"},
+  {"id": "account_delete",           "input": "please delete my account and remove my profile",              "expected": "account"},
+  {"id": "account_weak_single",      "input": "can you update my email",                                     "expected": "account"},
+
+  {"id": "unknown_greeting",         "input": "hello how are you today",                                     "expected": "unknown"},
+  {"id": "unknown_smalltalk",        "input": "just checking in, thanks for your help",                      "expected": "unknown"},
+  {"id": "unknown_incidental_delete","input": "please delete this old draft message",                        "expected": "unknown"},
+  {"id": "unknown_incidental_bill",  "input": "the movie bill murray was funny",                              "expected": "unknown"},
+  {"id": "unknown_incidental_settings","input": "check the settings on the thermostat",                       "expected": "unknown"},
+
+  {"id": "malformed_none_input",     "input": null,                                                          "expected": null}
+]

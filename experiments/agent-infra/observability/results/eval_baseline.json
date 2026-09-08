@@ -1,0 +1,196 @@
+{
+  "summary": {
+    "run_id": "run-baseline-b02dafdf",
+    "tag": "baseline",
+    "threshold": 0.0,
+    "total_cases": 18,
+    "passed": 12,
+    "failed": 6,
+    "errored": 1,
+    "pass_rate": 0.6667,
+    "run_duration_ms": 1.5598,
+    "timestamp": "2026-09-07T16:42:12.303321+00:00"
+  },
+  "cases": [
+    {
+      "case_id": "billing_invoice",
+      "expected": "billing",
+      "predicted": "billing",
+      "confidence": 0.3333333333333333,
+      "passed": true,
+      "errored": false,
+      "failed_step": null,
+      "error": null
+    },
+    {
+      "case_id": "billing_generic",
+      "expected": "billing",
+      "predicted": "billing",
+      "confidence": 0.2222222222222222,
+      "passed": true,
+      "errored": false,
+      "failed_step": null,
+      "error": null
+    },
+    {
+      "case_id": "billing_receipt",
+      "expected": "billing",
+      "predicted": "billing",
+      "confidence": 0.2222222222222222,
+      "passed": true,
+      "errored": false,
+      "failed_step": null,
+      "error": null
+    },
+    {
+      "case_id": "billing_weak_single",
+      "expected": "billing",
+      "predicted": "billing",
+      "confidence": 0.1111111111111111,
+      "passed": true,
+      "errored": false,
+      "failed_step": null,
+      "error": null
+    },
+    {
+      "case_id": "technical_login",
+      "expected": "technical",
+      "predicted": "technical",
+      "confidence": 0.4,
+      "passed": true,
+      "errored": false,
+      "failed_step": null,
+      "error": null
+    },
+    {
+      "case_id": "technical_timeout",
+      "expected": "technical",
+      "predicted": "technical",
+      "confidence": 0.3,
+      "passed": true,
+      "errored": false,
+      "failed_step": null,
+      "error": null
+    },
+    {
+      "case_id": "technical_password",
+      "expected": "technical",
+      "predicted": "technical",
+      "confidence": 0.3,
+      "passed": true,
+      "errored": false,
+      "failed_step": null,
+      "error": null
+    },
+    {
+      "case_id": "technical_weak_single",
+      "expected": "technical",
+      "predicted": "technical",
+      "confidence": 0.1,
+      "passed": true,
+      "errored": false,
+      "failed_step": null,
+      "error": null
+    },
+    {
+      "case_id": "account_profile",
+      "expected": "account",
+      "predicted": "account",
+      "confidence": 0.5,
+      "passed": true,
+      "errored": false,
+      "failed_step": null,
+      "error": null
+    },
+    {
+      "case_id": "account_signup",
+      "expected": "account",
+      "predicted": "account",
+      "confidence": 0.375,
+      "passed": true,
+      "errored": false,
+      "failed_step": null,
+      "error": null
+    },
+    {
+      "case_id": "account_delete",
+      "expected": "account",
+      "predicted": "account",
+      "confidence": 0.375,
+      "passed": true,
+      "errored": false,
+      "failed_step": null,
+      "error": null
+    },
+    {
+      "case_id": "account_weak_single",
+      "expected": "account",
+      "predicted": "account",
+      "confidence": 0.125,
+      "passed": true,
+      "errored": false,
+      "failed_step": null,
+      "error": null
+    },
+    {
+      "case_id": "unknown_greeting",
+      "expected": "unknown",
+      "predicted": "billing",
+      "confidence": 0.0,
+      "passed": false,
+      "errored": false,
+      "failed_step": null,
+      "error": null
+    },
+    {
+      "case_id": "unknown_smalltalk",
+      "expected": "unknown",
+      "predicted": "billing",
+      "confidence": 0.0,
+      "passed": false,
+      "errored": false,
+      "failed_step": null,
+      "error": null
+    },
+    {
+      "case_id": "unknown_incidental_delete",
+      "expected": "unknown",
+      "predicted": "account",
+      "confidence": 0.125,
+      "passed": false,
+      "errored": false,
+      "failed_step": null,
+      "error": null
+    },
+    {
+      "case_id": "unknown_incidental_bill",
+      "expected": "unknown",
+      "predicted": "billing",
+      "confidence": 0.1111111111111111,
+      "passed": false,
+      "errored": false,
+      "failed_step": null,
+      "error": null
+    },
+    {
+      "case_id": "unknown_incidental_settings",
+      "expected": "unknown",
+      "predicted": "account",
+      "confidence": 0.125,
+      "passed": false,
+      "errored": false,
+      "failed_step": null,
+      "error": null
+    },
+    {
+      "case_id": "malformed_none_input",
+      "expected": null,
+      "predicted": null,
+      "confidence": null,
+      "passed": false,
+      "errored": true,
+      "failed_step": "normalize",
+      "error": "AttributeError: 'NoneType' object has no attribute 'lower'"
+    }
+  ]
+}

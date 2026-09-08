@@ -1,0 +1,31 @@
+flowchart TB
+    subgraph RUN["One run (run_id)"]
+        direction TB
+        S1[Step 1] --> S2[Step 2] --> S3[Step 3] --> S4[Step 4] --> S5[Step 5]
+    end
+
+    S1 -. overwrite .-> W["working.json<br/>ephemeral, scratch only<br/>dies at end of run"]
+    S2 -. overwrite .-> W
+    S3 -. overwrite .-> W
+    S4 -. overwrite .-> W
+    S5 -. overwrite .-> W
+
+    S1 -- append --> L["log.jsonl<br/>durable, append-only<br/>never dies"]
+    S2 -- append --> L
+    S3 -- append --> L
+    S4 -- append --> L
+    S5 -- append --> L
+
+    W --> CRASH{{"crash after step 3<br/>+ wipe working.json"}}
+    CRASH -->|working.json gone| RECON["reconstruct from log.jsonl:<br/>steps 1-3 recovered, nothing lost"]
+    L --> RECON
+
+    CRASH -.contrast.-> BLOB["ANTI-PATTERN: blob.json<br/>(scratch + history merged, one file)"]
+    BLOB --> WIPE2{{"same crash + wipe"}}
+    WIPE2 --> LOST["all 3 completed step results LOST<br/>(no separate durable store existed)"]
+
+    style W fill:#fde68a,stroke:#92400e
+    style L fill:#bbf7d0,stroke:#166534
+    style BLOB fill:#fecaca,stroke:#991b1b
+    style LOST fill:#fecaca,stroke:#991b1b
+    style RECON fill:#bbf7d0,stroke:#166534

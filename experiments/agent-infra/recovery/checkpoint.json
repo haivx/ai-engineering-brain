@@ -1,0 +1,9 @@
+{
+  "completed_steps": [
+    "fetch_input",
+    "validate",
+    "transform",
+    "aggregate",
+    "write_report"
+  ]
+}

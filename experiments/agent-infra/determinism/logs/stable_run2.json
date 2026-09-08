@@ -1,0 +1,19 @@
+{
+  "deterministic": {
+    "assemble_input": "REQUEST\nreason: urgent prod incident\nrequester: alice\nresource: db-prod-01",
+    "decide": {
+      "action": "grant_access",
+      "reason": "model approved request"
+    },
+    "parse_output": {
+      "label": "APPROVE"
+    }
+  },
+  "nd": {
+    "boundary_call": {
+      "latency_ms": 177,
+      "raw_confidence": 0.85,
+      "raw_text": "Approved. This satisfies the policy requirements."
+    }
+  }
+}

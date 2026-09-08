@@ -1,0 +1,125 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>known-broken</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #ffffff; }
+  body { font-family: -apple-system, Helvetica, Arial, sans-serif; padding: 24px; }
+  #harness-status {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+    padding: 8px 12px; font-size: 13px; font-weight: 600;
+    background: #444; color: #fff;
+  }
+  #harness-status.ok { background: #1a7f37; }
+  #harness-status.fail { background: #c0272d; }
+  #stage { margin-top: 40px; }
+</style>
+</head>
+<body>
+<div id="harness-status">RENDER: PENDING</div>
+<div id="stage">
+  <div class="mermaid" id="diagram-src">flowchart LR
+    A[Start --&gt;&gt; B[[Broken syntax here
+    B --&gt; 
+</div>
+</div>
+
+<script src="../mermaid.min.js"></script>
+<script>
+(function () {
+  // Structured result object — this is what browser_evaluate should read.
+  window.__harness = {
+    status: "pending",   // "ok" | "fail" | "pending"
+    error: null,
+    consoleErrors: [],
+    source: "flowchart LR\n    A[Start -->> B[[Broken syntax here\n    B --> \n",
+    done: false
+  };
+
+  var origError = console.error;
+  console.error = function () {
+    try {
+      window.__harness.consoleErrors.push(Array.prototype.slice.call(arguments).map(String).join(" "));
+    } catch (e) {}
+    origError.apply(console, arguments);
+  };
+
+  window.addEventListener("error", function (ev) {
+    window.__harness.status = "fail";
+    window.__harness.error = "window.onerror: " + (ev && ev.message ? ev.message : String(ev));
+    window.__harness.done = true;
+    paintStatus();
+  });
+
+  function paintStatus() {
+    var el = document.getElementById("harness-status");
+    if (window.__harness.status === "ok") {
+      el.textContent = "RENDER: OK";
+      el.className = "ok";
+    } else if (window.__harness.status === "fail") {
+      el.textContent = "RENDER: FAIL — " + window.__harness.error;
+      el.className = "fail";
+    } else {
+      el.textContent = "RENDER: PENDING";
+      el.className = "";
+    }
+  }
+
+  // Known signatures mermaid embeds into the SVG when it hits a parse error,
+  // instead of throwing. This is the crux of the harness: a screenshot alone
+  // cannot tell "here is a diagram" from "here is a diagram-shaped error".
+  var ERROR_SIGNATURES = [
+    "Syntax error in text",
+    "mermaid version",
+    "Parse error"
+  ];
+
+  function looksLikeMermaidErrorGraphic(svgEl) {
+    if (!svgEl) return { hit: false };
+    var text = svgEl.textContent || "";
+    for (var i = 0; i < ERROR_SIGNATURES.length; i++) {
+      if (text.indexOf(ERROR_SIGNATURES[i]) !== -1) {
+        return { hit: true, reason: "SVG text contains \"" + ERROR_SIGNATURES[i] + "\"" };
+      }
+    }
+    var errNode = svgEl.querySelector(".error-icon, .error-text, [id*='error'], [class*='error']");
+    if (errNode) {
+      return { hit: true, reason: "SVG contains an error-marked element (" + (errNode.getAttribute("class") || errNode.id) + ")" };
+    }
+    return { hit: false };
+  }
+
+  async function main() {
+    try {
+      mermaid.initialize({ startOnLoad: false, securityLevel: "loose" });
+      var srcEl = document.getElementById("diagram-src");
+      var src = window.__harness.source;
+      var result = await mermaid.render("harness-rendered-svg", src);
+      var svgMarkup = result.svg;
+      srcEl.outerHTML = svgMarkup;
+
+      var svgEl = document.querySelector("#stage svg");
+      var check = looksLikeMermaidErrorGraphic(svgEl);
+      if (check.hit) {
+        window.__harness.status = "fail";
+        window.__harness.error = "Mermaid rendered an inline error graphic (no exception thrown). " + check.reason;
+      } else if (window.__harness.consoleErrors.length > 0) {
+        window.__harness.status = "fail";
+        window.__harness.error = "console.error was called during render: " + window.__harness.consoleErrors.join(" | ");
+      } else {
+        window.__harness.status = "ok";
+      }
+    } catch (e) {
+      window.__harness.status = "fail";
+      window.__harness.error = "exception: " + (e && e.message ? e.message : String(e));
+    }
+    window.__harness.done = true;
+    paintStatus();
+  }
+
+  main();
+})();
+</script>
+</body>
+</html>

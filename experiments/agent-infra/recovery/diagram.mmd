@@ -1,0 +1,24 @@
+sequenceDiagram
+    participant D as Driver (run.sh)
+    participant P1 as Process A (pipeline.py)
+    participant CP as checkpoint.json + data/*.json
+    participant P2 as Process B (new pipeline.py)
+
+    D->>P1: launch
+    P1->>CP: run fetch_input, commit output, save checkpoint
+    P1->>CP: run validate, commit output, save checkpoint
+    P1->>CP: write step3 temp file (side effect, not committed)
+    P1--)D: touch trigger file ("about to be killed")
+    D--)P1: SIGKILL
+    Note over P1: process dies mid transform step<br/>temp file orphaned, checkpoint still says<br/>only fetch_input + validate done
+
+    D->>P2: launch (brand new process)
+    P2->>CP: read checkpoint -> [fetch_input, validate]
+    P2->>CP: delete orphaned step3 temp file
+    Note over P2: SKIP fetch_input, SKIP validate
+    P2->>CP: re-run transform from scratch, commit, save checkpoint
+    P2->>CP: run aggregate, commit, save checkpoint
+    P2->>CP: run write_report, commit, save checkpoint
+    P2--)D: final report
+
+    D->>D: compare final report to uninterrupted<br/>happy-path run -> byte-identical
