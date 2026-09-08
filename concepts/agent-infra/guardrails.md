@@ -1,0 +1,2 @@
+# Guardrails
+Guardrails are the checks that validate an agent's intended action before it is allowed to execute—verifying inputs, enforcing permissions, or catching outputs that violate policy. Because agents can take real, sometimes irreversible actions, a plausible-looking but wrong decision can cause damage the moment it runs unchecked. Guardrails sit between the model's decision and the actual effect, giving a system the chance to block or correct unsafe behavior before it reaches the world.

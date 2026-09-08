@@ -28,12 +28,16 @@ folder, per this repo's proof-before-prose rule.
 end of one run" versus "what persists across runs, and for how long."
 Neither covers the other's scope.
 
-## Known gap: guardrails
+## Still opening framing only (no experiment yet)
 
-No experiment yet exists for input/output guardrails, so no
-`guardrails.md` exists in this folder. Per this repo's proof-before-prose
-rule, it gets written once an experiment lands in
-`experiments/agent-infra/guardrails/` — not before.
+These came from the cluster scaffold and remain short framing paragraphs.
+Per this repo's proof-before-prose rule, each gets a deep dive only once
+an experiment lands in `experiments/agent-infra/<topic>/` — not before:
+
+- `context-engineering.md` — what goes into context each step
+- `tool-calling.md` — the model to world interface
+- `orchestration.md` — single loop vs multi-agent, sub-agents
+- `guardrails.md` — validate before acting
 
 ## Wrap-up: which of these would silently break first?
 

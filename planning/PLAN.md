@@ -185,11 +185,14 @@ of real captured stdout, a `NOTES.md` of findings and explicit limits, plus
 
 ### Deviations from the plan as written
 
-1. `concepts/agent-infra/` did not exist. §5–§8 assume stubs to extend; every
-   file was created new, `recovery.md` included (so its retry/fallback framing
-   was written fresh, and only checkpoint-and-resume is presented as proven).
-2. `guardrails.md` was deliberately **not** written — no experiment backs it.
-   Recorded as a known gap in `concepts/agent-infra/README.md`.
+1. `concepts/agent-infra/` did not exist on `main` while this work was built —
+   the scaffold landed separately (PR #3) and was merged in afterwards. The
+   four deep dives replace the stubs they were meant to extend; `recovery.md`
+   keeps the retry/fallback/loop-guard framing as an explicitly unproven
+   adjacent note, since only checkpoint-and-resume was demonstrated.
+2. `guardrails.md` was deliberately **not** deep-dived — no experiment backs
+   it. It stays at the scaffold's opening framing, alongside
+   `context-engineering.md`, `tool-calling.md`, and `orchestration.md`.
 3. Step 3's rendering was done with a local harness
    (`experiments/agent-infra/_diagram-harness/`: vendored mermaid + `render.mjs`)
    rather than Mermaid Live Editor. It scans the output SVG for mermaid's own

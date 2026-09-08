@@ -1,0 +1,2 @@
+# Tool Calling
+Tool calling is the interface through which a model acts on and observes the world beyond its own text generation—calling APIs, running code, querying databases, or invoking other services. It turns a language model from a passive text generator into an agent capable of taking real actions and reasoning over their results. The reliability of an agent is bounded by how well its tools are defined, described, and validated, since ambiguous tool schemas or poorly handled outputs propagate errors straight into the agent's reasoning.
