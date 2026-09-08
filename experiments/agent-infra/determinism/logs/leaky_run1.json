@@ -1,0 +1,20 @@
+{
+  "deterministic_looking": {
+    "assemble_input": "REQUEST\nreason: urgent prod incident\nrequester: alice\nresource: db-prod-01",
+    "decide": {
+      "action": "deny_access",
+      "decided_at": 1788799391.64189
+    },
+    "parse_output": {
+      "label": "UNKNOWN"
+    },
+    "tag_summary": "urgent,oncall,db,prod,incident"
+  },
+  "nd": {
+    "boundary_call": {
+      "latency_ms": 360,
+      "raw_confidence": 0.828,
+      "raw_text": "This should be approved; it is policy-compliant."
+    }
+  }
+}

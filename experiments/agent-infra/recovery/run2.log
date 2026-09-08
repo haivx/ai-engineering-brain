@@ -1,0 +1,15 @@
+[23:41:00] STARTUP: found orphaned temp file from a half-done step -> /Users/xuanhai/Desktop/cat/ai-engineering-brain/experiments/agent-infra/recovery/data/step3_transformed.json.tmp.42690 (removing; the real output was never renamed to it, so nothing referenced it)
+[23:41:00] STARTUP: checkpoint shows completed steps = ['fetch_input', 'validate']
+[23:41:00] STEP fetch_input: SKIP (already completed per checkpoint)
+[23:41:00] STEP validate: SKIP (already completed per checkpoint)
+[23:41:00] STEP transform: starting
+[23:41:00] STEP transform: side effect written to temp file /Users/xuanhai/Desktop/cat/ai-engineering-brain/experiments/agent-infra/recovery/data/step3_transformed.json.tmp.42696 (not yet committed)
+[23:41:00] STEP transform: committed -> /Users/xuanhai/Desktop/cat/ai-engineering-brain/experiments/agent-infra/recovery/data/step3_transformed.json
+[23:41:00] CHECKPOINT: saved after completing 'transform' -> ['fetch_input', 'validate', 'transform']
+[23:41:00] STEP aggregate: starting
+[23:41:00] STEP aggregate: committed -> /Users/xuanhai/Desktop/cat/ai-engineering-brain/experiments/agent-infra/recovery/data/step4_aggregated.json
+[23:41:00] CHECKPOINT: saved after completing 'aggregate' -> ['fetch_input', 'validate', 'transform', 'aggregate']
+[23:41:00] STEP write_report: starting
+[23:41:00] STEP write_report: committed -> /Users/xuanhai/Desktop/cat/ai-engineering-brain/experiments/agent-infra/recovery/data/step5_report.json
+[23:41:00] CHECKPOINT: saved after completing 'write_report' -> ['fetch_input', 'validate', 'transform', 'aggregate', 'write_report']
+[23:41:00] PIPELINE COMPLETE

@@ -1,0 +1,18 @@
+flowchart LR
+    In[Input: user_request] --> Prep["Deterministic:<br/>assemble_input()"]
+    Prep --> NB{{"Non-deterministic boundary<br/>(1 function, 1 contract):<br/>non_deterministic_call()"}}
+    NB --> Parse["Deterministic:<br/>parse_output()"]
+    Parse --> Decide["Deterministic:<br/>decide()"]
+    Decide --> Out[Decision + log]
+
+    NB -.raw_text / raw_confidence /<br/>latency_ms differ each run.-> NDLog[("nd log<br/>varies run to run")]
+    Prep -.-> DetLog[("deterministic log<br/>byte-identical run to run")]
+    Parse -.-> DetLog
+    Decide -.-> DetLog
+
+    Fixture[("fixtures/<br/>boundary_output.json")] -.record.-> NB
+    Fixture -.replay: swap in for<br/>non_deterministic_call.-> Parse
+
+    style NB fill:#f9d,stroke:#333
+    style NDLog fill:#fee,stroke:#933
+    style DetLog fill:#eef,stroke:#339

@@ -1,0 +1,2 @@
+[23:41:00] UNSAFE STEP: writing directly to the final path (no temp file, no atomic rename)
+[23:41:00] UNSAFE STEP: first chunk committed straight to the REAL file; signaling driver and waiting to be killed

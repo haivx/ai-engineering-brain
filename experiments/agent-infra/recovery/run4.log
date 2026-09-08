@@ -1,0 +1,18 @@
+[23:41:00] STARTUP: no checkpoint file is ever read -- always starting at step 1
+[23:41:00] STEP fetch_input: running (no checkpoint to skip against)
+[23:41:00] STEP fetch_input: starting
+[23:41:00] STEP fetch_input: committed -> /Users/xuanhai/Desktop/cat/ai-engineering-brain/experiments/agent-infra/recovery/data/step1_input.json
+[23:41:00] STEP validate: running (no checkpoint to skip against)
+[23:41:00] STEP validate: starting
+[23:41:00] STEP validate: committed -> /Users/xuanhai/Desktop/cat/ai-engineering-brain/experiments/agent-infra/recovery/data/step2_validated.json
+[23:41:00] STEP transform: running (no checkpoint to skip against)
+[23:41:00] STEP transform: starting
+[23:41:00] STEP transform: side effect written to temp file /Users/xuanhai/Desktop/cat/ai-engineering-brain/experiments/agent-infra/recovery/data/step3_transformed.json.tmp.42708 (not yet committed)
+[23:41:00] STEP transform: committed -> /Users/xuanhai/Desktop/cat/ai-engineering-brain/experiments/agent-infra/recovery/data/step3_transformed.json
+[23:41:00] STEP aggregate: running (no checkpoint to skip against)
+[23:41:00] STEP aggregate: starting
+[23:41:00] STEP aggregate: committed -> /Users/xuanhai/Desktop/cat/ai-engineering-brain/experiments/agent-infra/recovery/data/step4_aggregated.json
+[23:41:00] STEP write_report: running (no checkpoint to skip against)
+[23:41:00] STEP write_report: starting
+[23:41:00] STEP write_report: committed -> /Users/xuanhai/Desktop/cat/ai-engineering-brain/experiments/agent-infra/recovery/data/step5_report.json
+[23:41:00] PIPELINE COMPLETE

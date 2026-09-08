@@ -1,0 +1,27 @@
+flowchart LR
+    subgraph R1["Run #1 (process invocation)"]
+        A1["session.json absent<br/>-> create session S1"]
+    end
+    subgraph R2["Run #2 (process invocation)"]
+        A2["session.json = S1<br/>run_count 1 -> 2<br/>hits SESSION_MAX_RUNS"]
+        A2 --> P["promote S1 facts<br/>as session_summary"]
+        P --> D["delete session.json<br/>(S1 state gone from session tier)"]
+    end
+    subgraph R3["Run #3 (process invocation)"]
+        A3["session.json absent<br/>-> create session S2"]
+    end
+
+    R1 --> R2 --> R3
+
+    A1 -- append run event --> LOG
+    A2 -- append run event --> LOG
+    P -- append summary --> LOG
+    A3 -- append run event --> LOG
+
+    LOG["log.jsonl<br/>durable, append-only<br/>spans S1 AND S2, all 3 runs<br/>never dies"]
+
+    style A1 fill:#bfdbfe,stroke:#1e3a8a
+    style A2 fill:#bfdbfe,stroke:#1e3a8a
+    style A3 fill:#bfdbfe,stroke:#1e3a8a
+    style D fill:#fecaca,stroke:#991b1b
+    style LOG fill:#bbf7d0,stroke:#166534
