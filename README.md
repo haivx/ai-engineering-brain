@@ -23,5 +23,7 @@ Với những thứ hay thay đổi: chỉ lưu *quy trình tra cứu* + link (x
 
 ## Mục lục hiện tại
 - concepts: routing · eval · model-tiers · moe · inference-providers
+- concepts/agent-infra: state · memory · determinism · observability · recovery · context-engineering · tool-calling · orchestration · guardrails
+- concepts/data-engineering: tabular-ops · sampling-and-balance · chunking-and-embedding · golden-dataset · data-quality-checks
 - playbooks: choose-cheap-model · build-eval-set
-- references: leaderboards
+- references: leaderboards · data-engineering-tools
