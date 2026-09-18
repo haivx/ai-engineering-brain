@@ -1,48 +1,49 @@
-# Observability: Tracing Underneath the Number
+# Observability: trace nằm dưới con số
 
-An eval reduces a run to one number — useful for "did it get better," but
-it can't say why. Observability is the structured, per-step, per-case
-trace underneath that number; without it a regression can be noticed but
-not debugged. This file owns the tracing/instrumentation half; eval
-methodology itself lives in `concepts/eval.md`.
+Một bài eval rút gọn cả lần chạy về một con số — hữu ích để biết "có tốt
+lên không", nhưng không nói được vì sao. Observability là cái trace có cấu
+trúc, theo từng bước, theo từng case, nằm dưới con số đó; thiếu nó thì một
+regression có thể được phát hiện nhưng không thể debug. File này phụ trách
+nửa tracing/instrumentation; còn phương pháp luận eval nằm ở `concepts/eval.md`.
 
-## The same score can hide two different systems
+## Cùng một điểm số có thể che giấu hai hệ thống khác nhau
 
-A structured harness (one JSONL record per pipeline step, per case) and a
-naive version wrapped in one bare `try/except: print("case failed")`
-scored the identical 12/18 on the identical 18 cases. Only the structured
-log could tell a crash apart from a wrong answer: a `status` field (`ok` /
-`error`) plus `step` and `step_seq` let one `grep` show a failing case
-broke in `normalize`, at step 1 of 5, before `tokenize`, `score`, or
-`decide` ever ran. The naive version could only ever say "case failed." A
-bare pass-rate is not observability — it's the summary observability makes
-possible.
+Một harness có cấu trúc (mỗi bước pipeline của mỗi case một bản ghi JSONL)
+và một phiên bản ngây thơ bọc trong đúng một `try/except: print("case
+failed")` đều cho 12/18 y hệt nhau trên cùng 18 case. Chỉ log có cấu trúc
+mới phân biệt được một cú crash với một câu trả lời sai: trường `status`
+(`ok` / `error`) cộng với `step` và `step_seq` cho phép một lệnh `grep`
+chỉ ra rằng case hỏng đã vỡ ở `normalize`, tại bước 1 trên 5, trước khi
+`tokenize`, `score` hay `decide` kịp chạy. Phiên bản ngây thơ mãi mãi chỉ
+nói được "case failed". Một con số pass-rate trần trụi không phải là
+observability — nó là bản tóm tắt mà observability làm cho khả thi.
 
-## A headline number can hide a trade-off
+## Một con số tổng có thể che giấu một sự đánh đổi
 
-Raising a classification threshold moved the pass rate from 66.7% to
-77.8% — a real, reproducible +11.1 points. Reported alone, that reads as a
-clean win. It wasn't: 8 of 18 cases flipped outcome, and the gain was 5
-false positives fixed at the cost of 3 true positives newly broken. The net
-number and the per-case diff answer different questions — "did this help"
-and "what did it cost" — and only the second shows the trade-off actually
-being made.
+Nâng ngưỡng phân loại đã đẩy pass rate từ 66,7% lên 77,8% — một mức +11,1
+điểm thật và tái lập được. Báo cáo riêng lẻ, nó đọc như một thắng lợi
+sạch sẽ. Thực ra không phải: 8 trong 18 case bị lật kết quả, và phần tăng
+ấy là 5 false positive được sửa, đổi lấy 3 true positive mới hỏng. Con số
+tổng và bản diff theo từng case trả lời hai câu hỏi khác nhau — "cái này
+có giúp ích không" và "nó tốn cái gì" — và chỉ câu thứ hai mới cho thấy sự
+đánh đổi thực sự đang diễn ra.
 
-## What the record needs to carry
+## Bản ghi cần mang theo những gì
 
-`run_id` and `case_id` to correlate every record to one invocation and one
-case, `step`/`step_seq` to localize where in a pipeline something happened,
-`status` (never merged into a single pass/fail) to separate a wrong answer
-from a crash, and `duration_ms` to rule out a hang. Only the fields the
-eval actually scores on need to be deterministic — a fresh `run_id` every
-run is fine.
+`run_id` và `case_id` để nối mọi bản ghi về đúng một lần gọi và đúng một
+case, `step`/`step_seq` để định vị chuyện xảy ra ở đâu trong pipeline,
+`status` (đừng bao giờ gộp thành một cặp pass/fail duy nhất) để tách một
+câu trả lời sai khỏi một cú crash, và `duration_ms` để loại trừ khả năng
+treo. Chỉ những trường mà bài eval thực sự chấm điểm mới cần deterministic
+— một `run_id` mới tinh ở mỗi lần chạy là hoàn toàn ổn.
 
-## What this doesn't prove
+## Điều này chưa chứng minh được gì
 
-The system under test had zero randomness in its decision logic, so
-reproducible pass rates came for free across reruns. An LLM-in-the-loop
-system wouldn't get that for free — it would need explicit seeding or
-replay at the non-deterministic boundary (`concepts/agent-infra/determinism.md`).
+Hệ thống được kiểm thử không có chút ngẫu nhiên nào trong logic quyết
+định, nên pass rate tái lập được là chuyện đương nhiên qua các lần chạy
+lại. Một hệ thống có LLM trong vòng lặp sẽ không được như thế miễn phí —
+nó cần seeding tường minh hoặc replay tại ranh giới bất định
+(`concepts/agent-infra/determinism.md`).
 
 ```mermaid
 flowchart LR
@@ -76,6 +77,6 @@ flowchart LR
     style Verdict fill:#ffe08a,stroke:#333
 ```
 
-Evidence: `experiments/agent-infra/observability/` (`RUN.md`, `NOTES.md`,
-`diagram.mmd` / `diagram.png`). The eval-harness half feeds
+Bằng chứng: `experiments/agent-infra/observability/` (`RUN.md`, `NOTES.md`,
+`diagram.mmd` / `diagram.png`). Nửa eval-harness cung cấp đầu vào cho
 `playbooks/build-eval-set.md`.

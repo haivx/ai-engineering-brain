@@ -1,17 +1,17 @@
-# RUN.md — captured terminal output
+# RUN.md — output terminal đã ghi lại
 
-Environment: Python 3.9.6, stdlib only, run from this directory with
-`python3 <script>.py`. All output below is copy-pasted from real runs, not
-invented.
+Môi trường: Python 3.9.6, chỉ dùng thư viện chuẩn, chạy từ thư mục này bằng
+`python3 <script>.py`. Toàn bộ output bên dưới được copy-paste từ các lần chạy
+thật, không bịa ra.
 
 ---
 
-## 1. Disciplined boundary — deterministic logs stay byte-identical
+## 1. Ranh giới có kỷ luật — log deterministic vẫn giống nhau từng byte
 
-Demonstrates: same input run twice through `boundary.run_pipeline()`. The
-`nd` (non-deterministic boundary) log differs every run; the `deterministic`
-log (input assembly, parsing, decision) is byte-identical, with an explicit
-diff proving it.
+Minh họa: cùng một input chạy hai lần qua `boundary.run_pipeline()`. Log `nd`
+(ranh giới bất định) khác nhau ở mỗi lần chạy; log `deterministic` (lắp ráp
+input, parse, quyết định) thì giống nhau từng byte, có một phép diff tường minh
+chứng minh điều đó.
 
 ```
 $ python3 run_stable.py
@@ -85,13 +85,13 @@ final decision run2: {'action': 'grant_access', 'reason': 'model approved reques
 
 ---
 
-## 2. Leaked non-determinism — the failure mode, then the contrast
+## 2. Tính bất định bị rò rỉ — kiểu thất bại, rồi phần đối chứng
 
-Demonstrates three ways non-determinism sneaks past a boundary into code
-that looks deterministic (naive parsing keyed on incidental phrasing;
-a wall-clock timestamp stamped into a decision record; `set()` iteration
-order across process invocations), then re-runs the disciplined pipeline
-on identical input/pressure for direct contrast.
+Minh họa ba cách tính bất định lọt qua ranh giới vào đoạn code trông có vẻ
+deterministic (parse ngây thơ bám vào cách diễn đạt tình cờ; một timestamp đồng
+hồ hệ thống đóng dấu vào bản ghi quyết định; thứ tự duyệt `set()` giữa các lần
+gọi tiến trình), rồi chạy lại pipeline có kỷ luật trên cùng input/áp lực đó để
+đối chứng trực tiếp.
 
 ```
 $ python3 leak_demo.py
@@ -145,14 +145,13 @@ disciplined deterministic log run1 == run2: True
 }
 ```
 
-Note on an earlier run (kept here because it is the most important evidence
-in this whole folder, not because it's reproducible on demand — the exact
-words are only ever chosen by chance): on a different invocation, `decide`
-flipped between `deny_access` and `grant_access` for the identical
-`user_request`, purely because `naive_parse_output` happened to match a
-template starting with the literal word "Approve." on one run and "Yes,"
-on the other. The *real* underlying verdict (baked into the prompt) never
-changed — only the naive parser's read of it did:
+Ghi chú về một lần chạy trước đó (giữ lại ở đây vì nó là bằng chứng quan trọng
+nhất trong cả thư mục này, chứ không phải vì nó tái lập được theo ý muốn — câu
+chữ chính xác luôn được chọn ngẫu nhiên): ở một lần gọi khác, `decide` đã lật
+giữa `deny_access` và `grant_access` với cùng một `user_request`, thuần túy vì
+`naive_parse_output` tình cờ khớp một template mở đầu bằng đúng từ "Approve." ở
+lần này và "Yes," ở lần kia. Phán quyết nền *thật* (được cài sẵn trong prompt)
+không hề đổi — chỉ cách parser ngây thơ đọc nó là đổi:
 
 ```
 --- run1 'deterministic-looking' log ---
@@ -172,17 +171,16 @@ changed — only the naive parser's read of it did:
 }
 ```
 
-This is not a cosmetic log difference — it is an access-control decision
-that silently flips depending on which phrasing the model happened to pick.
+Đây không phải một khác biệt log mang tính hình thức — đây là một quyết định
+access-control âm thầm lật ngược tùy theo model tình cờ chọn cách diễn đạt nào.
 
 ---
 
-## 3. Record/replay — the whole pipeline becomes reproducible
+## 3. Record/replay — cả pipeline trở nên tái lập được
 
-Demonstrates: capture the boundary's one non-deterministic call to a fixture
-file, then replay `run_pipeline()` from that fixture instead of a live call.
-The *entire* log — including the `nd` section — is now byte-identical
-across runs.
+Minh họa: ghi lại lời gọi bất định duy nhất tại ranh giới vào một file fixture,
+rồi phát lại `run_pipeline()` từ fixture đó thay vì gọi thật. *Toàn bộ* log — kể
+cả phần `nd` — giờ giống nhau từng byte qua các lần chạy.
 
 ```
 $ python3 record_replay.py record
@@ -241,12 +239,12 @@ full pipeline byte-identical across replayed runs: True
 
 ---
 
-## 4. Optional `--live` path degrades safely with no key configured
+## 4. Nhánh tùy chọn `--live` suy giảm an toàn khi chưa cấu hình key
 
-Demonstrates: `run_stable.py --live` attempts a real OpenRouter call (opt-in
-only), and falls back to the offline stub with a clear warning — never a
-crash, never a printed key — when `OPENROUTER_API_KEY` isn't in the shell
-environment. This proof never depends on network access.
+Minh họa: `run_stable.py --live` thử gọi OpenRouter thật (chỉ khi được bật), và
+lùi về stub offline kèm một cảnh báo rõ ràng — không bao giờ crash, không bao giờ
+in key ra — khi `OPENROUTER_API_KEY` không có trong môi trường shell. Bản chứng
+minh này không bao giờ phụ thuộc vào kết nối mạng.
 
 ```
 $ env | grep -c OPENROUTER_API_KEY
@@ -271,20 +269,18 @@ deterministic logs byte-identical: True
 non-deterministic logs byte-identical: False
 ```
 
-(Full output identical in shape to Section 1 — the `--live` flag only
-changes which function fills the boundary contract; the rest of the
-pipeline does not know or care.)
+(Output đầy đủ có hình dạng y hệt Mục 1 — cờ `--live` chỉ đổi xem hàm nào lấp
+vào contract của ranh giới; phần còn lại của pipeline không biết và cũng không quan tâm.)
 
 ---
 
-## 5. Diagram render check (Playwright)
+## 5. Kiểm tra render diagram (Playwright)
 
-`diagram.mmd` was rendered via the repo's local mermaid harness
-(`experiments/agent-infra/_diagram-harness/render.mjs` + vendored
-`mermaid.min.js`) and opened in a headless Chromium session through the
-Playwright MCP tools. `window.__harness.status` reported `"ok"` with no
-console errors, and the screenshot (`diagram.png` in this folder) was
-visually checked against the code: input to `assemble_input`, into the
-pink non-deterministic boundary, into `parse_output` → `decide`, with the
-`nd` vs deterministic log split and the record/replay fixture both shown
-as dashed side paths.
+`diagram.mmd` đã được render qua harness mermaid cục bộ của repo
+(`experiments/agent-infra/_diagram-harness/render.mjs` + `mermaid.min.js` đã
+vendor) và mở trong một phiên Chromium headless bằng các tool Playwright MCP.
+`window.__harness.status` báo `"ok"` không có lỗi console nào, và ảnh chụp
+(`diagram.png` trong thư mục này) đã được đối chiếu bằng mắt với code: input đi
+vào `assemble_input`, vào ranh giới bất định màu hồng, rồi vào `parse_output` →
+`decide`, với phần tách log `nd` và log deterministic cùng fixture record/replay
+đều hiện ra dưới dạng các nhánh phụ nét đứt.

@@ -1,32 +1,33 @@
-# Working State (Single Run)
+# Working State (một lần chạy)
 
-"Working state" is what a single run needs to get from its first step to
-its last: scratch values, in-progress buffers, whatever a step is computing
-right now. It dies when the run ends — a crash, a container recycle, or a
-delete of that file should destroy nothing that already mattered.
+"Working state" là những gì một lần chạy cần để đi từ bước đầu tiên tới
+bước cuối cùng: giá trị tạm, buffer đang dở, bất cứ thứ gì một bước đang
+tính ngay lúc đó. Nó chết khi lần chạy kết thúc — một cú crash, một lần
+container bị recycle, hay việc xóa file đó đều không được phá hỏng thứ gì
+vốn đã có giá trị.
 
-## Two tiers, never merged
+## Hai tầng, không bao giờ gộp
 
-Keep ephemeral scratch (overwritten every step) strictly separate from a
-durable, append-only log (one line per completed step, never rewritten).
-The separation costs one extra write per step, but it's what lets the
-ephemeral tier be wiped outright after a crash and the run's true progress
-reconstructed from the log alone, with zero loss.
+Giữ phần scratch ephemeral (bị ghi đè ở mỗi bước) tách bạch tuyệt đối với
+một log durable, append-only (mỗi bước hoàn tất một dòng, không bao giờ
+ghi lại). Sự tách bạch này tốn thêm một lần ghi cho mỗi bước, nhưng chính
+nó cho phép xóa sạch tầng ephemeral sau một cú crash và dựng lại tiến độ
+thật của lần chạy chỉ từ log, mà không mất gì.
 
-## The single-blob anti-pattern is the realistic failure
+## Anti-pattern gộp-một-khối mới là thất bại thực tế
 
-Merging scratch and history into one overwritten file looks *better* than
-the two-tier design while the run is healthy — the history is right there.
-The failure is invisible until a crash is followed by a wipe of that file:
-every completed step's result disappears along with the scratch, because no
-separate durable store ever existed. Tier separation isn't a feature; it's
-insurance against a failure with no symptoms until it's too late to matter.
+Gộp scratch và lịch sử vào một file bị ghi đè trông có vẻ *hay hơn* thiết
+kế hai tầng khi lần chạy đang khỏe mạnh — lịch sử nằm ngay đó. Thất bại
+vô hình cho tới khi một cú crash đi kèm với việc file đó bị xóa: kết quả
+của mọi bước đã hoàn tất biến mất cùng với scratch, vì chưa từng tồn tại
+một kho durable riêng. Tách tầng không phải là một tính năng; nó là bảo
+hiểm trước một thất bại không có triệu chứng nào cho tới khi đã quá muộn.
 
-## What this doesn't prove
+## Điều này chưa chứng minh được gì
 
-This shows the data needed to resume survives a wipe of working state — not
-that a process automatically resumes execution from the recovered point.
-See `concepts/agent-infra/recovery.md`.
+Nó cho thấy dữ liệu cần để resume vẫn sống sót qua một lần xóa working
+state — chứ không phải một tiến trình tự động chạy tiếp từ điểm khôi phục.
+Xem `concepts/agent-infra/recovery.md`.
 
 ```mermaid
 flowchart TB
@@ -62,4 +63,4 @@ flowchart TB
     style RECON fill:#bbf7d0,stroke:#166534
 ```
 
-Evidence: `experiments/agent-infra/state/` (`RUN.md`, `NOTES.md`, `diagram.mmd` / `diagram.png`).
+Bằng chứng: `experiments/agent-infra/state/` (`RUN.md`, `NOTES.md`, `diagram.mmd` / `diagram.png`).

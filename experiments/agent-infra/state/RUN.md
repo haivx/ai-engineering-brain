@@ -1,19 +1,19 @@
-# RUN.md — single-run working state proof
+# RUN.md — bằng chứng về working state trong một lần chạy
 
-Environment: Python 3.9.6, standard library only. Run from
-`experiments/agent-infra/state/` (or the repo root — paths in `run.py` are
-anchored to the script's own directory).
+Môi trường: Python 3.9.6, chỉ dùng thư viện chuẩn. Chạy từ
+`experiments/agent-infra/state/` (hoặc từ gốc repo — các đường dẫn trong `run.py`
+đều neo theo thư mục của chính script).
 
-All output below is copied verbatim from actual terminal runs of `run.py`.
+Toàn bộ output bên dưới được chép nguyên văn từ các lần chạy `run.py` thật trên terminal.
 
 ---
 
-## 1. Normal run: two tiers, written to two separate files
+## 1. Lần chạy bình thường: hai tầng, ghi vào hai file riêng biệt
 
-Demonstrates: `working.json` is overwritten every step (pure scratch, no
-memory of its own history); `log.jsonl` is appended to every step (durable,
-never rewritten). After the run, `working.json` reflects only the final
-state (nothing to prove there), while `log.jsonl` holds one line per step.
+Minh họa: `working.json` bị ghi đè ở mỗi bước (scratch thuần túy, không nhớ gì về
+lịch sử của chính nó); `log.jsonl` được ghi thêm ở mỗi bước (durable, không bao
+giờ bị ghi lại). Sau lần chạy, `working.json` chỉ phản ánh trạng thái cuối cùng
+(chẳng chứng minh được gì ở đó), còn `log.jsonl` giữ mỗi bước một dòng.
 
 ```
 === SECTION 1: normal run, two tiers written separately ===
@@ -47,14 +47,14 @@ state (nothing to prove there), while `log.jsonl` holds one line per step.
 
 ---
 
-## 2. Forced crash + wipe of working state + reconstruction from the durable log
+## 2. Ép crash + xóa sạch working state + dựng lại từ log durable
 
-Demonstrates the core boundary claim: a run (`R2`) is crashed on purpose
-after step 3 (`--crash-at 3`), leaving `working.json` dangling with
-in-progress scratch data. `working.json` is then deleted outright
-(`wipe-working`, simulating a process death / container recycle). The run's
-progress is then fully reconstructed using **only** `log.jsonl` — proving
-that wiping the ephemeral tier loses nothing that was already committed.
+Minh họa khẳng định ranh giới cốt lõi: một lần chạy (`R2`) bị ép crash sau bước 3
+(`--crash-at 3`), để lại `working.json` lơ lửng với dữ liệu scratch đang dở. Sau
+đó `working.json` bị xóa thẳng (`wipe-working`, mô phỏng tiến trình chết /
+container bị recycle). Tiến độ của lần chạy sau đó được dựng lại đầy đủ **chỉ**
+từ `log.jsonl` — chứng minh rằng xóa sạch tầng ephemeral không làm mất bất cứ thứ
+gì đã được commit.
 
 ```
 === SECTION 2: simulate crash mid-run (run_id=R2, crash after step 3) ===
@@ -93,14 +93,14 @@ that wiping the ephemeral tier loses nothing that was already committed.
 
 ---
 
-## 3. The inverse mistake: single-blob design loses history on the same wipe
+## 3. Sai lầm ngược lại: thiết kế gộp-một-khối mất sạch lịch sử với cùng cú xóa
 
-Demonstrates what the tier separation is actually preventing. `blob-run`
-merges scratch state AND full history into **one** file (`blob.json`),
-overwritten every step — the design many "just store it in a file" systems
-default to. It is crashed at the identical point (step 3) and wiped the
-same way. Because there was never a separate append-only store, the wipe
-destroys all 3 already-completed step results, not just the in-flight one.
+Minh họa chính xác thứ mà việc tách tầng đang ngăn chặn. `blob-run` gộp cả scratch
+state LẪN toàn bộ lịch sử vào **một** file (`blob.json`), bị ghi đè ở mỗi bước —
+đúng thiết kế mặc định của nhiều hệ thống kiểu "cứ quăng vào một file là xong". Nó
+bị ép crash ở đúng điểm đó (bước 3) và bị xóa theo cùng cách. Vì chưa từng tồn tại
+một kho append-only riêng, cú xóa phá hủy kết quả của cả 3 bước đã hoàn tất, không
+chỉ bước đang dở.
 
 ```
 === SECTION 3: ANTI-PATTERN — single blob.json merges scratch + history ===
@@ -141,11 +141,11 @@ destroys all 3 already-completed step results, not just the in-flight one.
 
 ---
 
-## 4. Reproducibility check
+## 4. Kiểm tra khả năng tái lập
 
-Demonstrates: the whole proof is deterministic — `reset` then the same
-command sequence produces byte-identical output, every time, from a clean
-slate (no wall-clock timestamps or randomness anywhere in `run.py`).
+Minh họa: toàn bộ bản chứng minh là deterministic — `reset` rồi chạy lại đúng
+chuỗi lệnh đó sẽ cho output giống nhau từng byte, lần nào cũng vậy, từ một trạng
+thái sạch (không có timestamp đồng hồ hệ thống hay yếu tố ngẫu nhiên nào trong `run.py`).
 
 ```
 $ python3 run.py reset
@@ -158,7 +158,6 @@ $ diff /tmp/repro1.txt /tmp/repro2.txt && echo "REPRODUCIBLE: identical output a
 REPRODUCIBLE: identical output across clean runs
 ```
 
-Generated files (`working.json`, `log.jsonl`, `blob.json`) are build
-artifacts of running the demo — they are removed by `python3 run.py reset`
-and are not meant to be committed as fixed evidence; the transcripts above
-are the durable record.
+Các file được sinh ra (`working.json`, `log.jsonl`, `blob.json`) là build artifact
+của việc chạy demo — chúng bị xóa bởi `python3 run.py reset` và không nhằm mục đích
+commit như bằng chứng cố định; chính các bản ghi terminal ở trên mới là hồ sơ durable.

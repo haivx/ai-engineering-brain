@@ -1,38 +1,40 @@
-# NOTES.md — state/ (single-run working state)
+# NOTES.md — state/ (working state trong một lần chạy)
 
-- Separating `working.json` (overwritten) from `log.jsonl` (append-only) cost
-  nothing extra in the code — the log write is one extra line per step. The
-  discipline is cheap; it's the *habit* of doing it that's the actual
-  practice, not the mechanism.
-- The proof only works because "durable" was defined narrowly and honestly:
-  append-only, one file, never truncated, never rewritten. The moment a
-  "durable" store also gets `overwrite`d (like the blob anti-pattern does),
-  it stops being durable in practice even if you call it that.
-- The reconstruction step (`reconstruct`) is doing real work: it's not just
-  "the log still has the data," it's "you can derive the correct resume
-  point (step 4) purely from what's committed," which is the actual
-  operational payoff, not just "no data loss" in the abstract.
-- The anti-pattern (`blob.json`) was the more instructive half of this
-  exercise. It's not a strawman — it's the natural first draft anyone
-  writes ("just dump my state to one JSON file"), and it fails silently:
-  nothing looks wrong until the exact moment of a crash + cleanup.
-- Surprise: the blob design's `history` field, while it existed, actually
-  looked *better* than the separated design mid-run (it visibly carries
-  more information right there in one file). The failure is invisible until
-  the wipe happens — this is worth stressing in the concept paragraph,
-  since "looks fine most of the time" is exactly why the mistake persists.
-- Determinism required removing all wall-clock/random elements — `step *
-  step` as the "computation" stands in for a real deterministic
-  transform. In a real agent run, the working-state tier would hold things
-  like partial LLM output buffers or tool-call scratch args; the log would
-  hold only the committed result of each completed step, same shape as here.
-- What this experiment does NOT prove: it doesn't show automatic *recovery*
-  (resuming execution from step 4 and finishing steps 4-5) — only that the
-  information needed to do so survives the wipe. Actual resume-from-checkpoint
-  behavior belongs to `experiments/agent-infra/recovery/`, not here — this
-  folder proves the data survives, not that a process automatically picks
-  it back up.
-- One-file-per-tier is a real constraint worth keeping: at no point did the
-  script need to know the schema of the *other* tier's file to do its job,
-  which is what makes wiping one of them in isolation both safe (for the
-  log) and legible as a failure (for the blob).
+- Tách `working.json` (bị ghi đè) khỏi `log.jsonl` (append-only) không tốn
+  thêm gì trong code — ghi log chỉ là một dòng thêm cho mỗi bước. Kỷ luật
+  này rẻ; chính *thói quen* làm điều đó mới là phần thực hành thật sự, chứ
+  không phải cơ chế.
+- Bản chứng minh chỉ đứng vững vì "durable" đã được định nghĩa hẹp và trung
+  thực: append-only, một file, không bao giờ bị cắt cụt, không bao giờ bị
+  ghi lại. Ngay khoảnh khắc một kho "durable" cũng bị `overwrite` (như
+  anti-pattern blob), nó thôi không còn durable trên thực tế nữa, dù bạn có
+  gọi tên nó như thế.
+- Bước dựng lại (`reconstruct`) đang làm việc thật: nó không chỉ là "log vẫn
+  còn dữ liệu", mà là "bạn có thể suy ra đúng điểm resume (bước 4) thuần túy
+  từ những gì đã commit" — đó mới là lợi ích vận hành thật, chứ không phải
+  chỉ "không mất dữ liệu" một cách trừu tượng.
+- Anti-pattern (`blob.json`) mới là nửa hữu ích hơn của bài tập này. Nó không
+  phải hình nộm — nó chính là bản nháp đầu tiên mà ai cũng viết ("cứ đổ hết
+  state vào một file JSON"), và nó hỏng âm thầm: chẳng có gì trông sai cho
+  tới đúng khoảnh khắc crash + dọn dẹp.
+- Bất ngờ: trường `history` của thiết kế blob, khi còn tồn tại, thực ra trông
+  *hay hơn* thiết kế tách tầng ở giữa lần chạy (nó chứa nhiều thông tin hơn
+  hẳn, ngay trong một file). Thất bại vô hình cho tới khi cú xóa sạch xảy ra
+  — điều này đáng nhấn mạnh trong đoạn concept, vì "trông ổn trong phần lớn
+  thời gian" chính là lý do sai lầm này cứ tồn tại mãi.
+- Để có tính deterministic thì phải loại bỏ mọi yếu tố đồng hồ hệ thống/ngẫu
+  nhiên — phép `step * step` đóng vai "phần tính toán" thay cho một phép biến
+  đổi deterministic thật. Trong một lần chạy agent thật, tầng working-state sẽ
+  giữ những thứ như buffer output LLM dang dở hay các tham số scratch của
+  tool-call; log sẽ chỉ giữ kết quả đã commit của mỗi bước hoàn tất, cùng hình
+  dạng như ở đây.
+- Điều experiment này KHÔNG chứng minh: nó không cho thấy khả năng *recovery*
+  tự động (chạy tiếp từ bước 4 và hoàn tất bước 4-5) — chỉ cho thấy thông tin
+  cần để làm điều đó sống sót qua cú xóa sạch. Hành vi resume-from-checkpoint
+  thật sự thuộc về `experiments/agent-infra/recovery/`, không phải ở đây — thư
+  mục này chứng minh dữ liệu sống sót, chứ không phải một tiến trình tự động
+  nhặt nó lên dùng tiếp.
+- Một-file-cho-một-tầng là một ràng buộc thật đáng giữ: không lúc nào script
+  cần biết schema của file thuộc tầng *kia* để làm việc của mình, và chính điều
+  đó khiến việc xóa sạch riêng một tầng vừa an toàn (với log) vừa đọc ra được
+  như một thất bại (với blob).

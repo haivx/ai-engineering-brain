@@ -1,20 +1,20 @@
-# References: leaderboards & how to look things up
+# References: leaderboards & cách tra cứu
 
-> Do NOT copy figures/prices in here — they decay fast. Store only LINKS + THE LOOKUP PROCEDURE.
+> TUYỆT ĐỐI không chép số liệu/giá vào đây — chúng lỗi thời rất nhanh. Chỉ lưu LINK + QUY TRÌNH TRA CỨU.
 
-## Primary sources
+## Nguồn chính
 - **Artificial Analysis** — https://artificialanalysis.ai/
-  The most credible aggregate: intelligence, coding, agentic + speed & price per provider.
-  Many other tables pull their data from here.
+  Bảng tổng hợp đáng tin nhất: intelligence, coding, agentic + tốc độ & giá theo từng provider.
+  Nhiều bảng khác lấy dữ liệu từ đây.
 - **OpenRouter Rankings** — https://openrouter.ai/rankings
-  Ranked by tokens developers ACTUALLY use ("the market votes"). Includes per-provider pricing.
+  Xếp hạng theo lượng token mà lập trình viên THỰC SỰ dùng ("thị trường bỏ phiếu"). Có kèm giá theo provider.
 - **LLM-Stats** — https://llm-stats.com/leaderboards/llm-leaderboard
-  Filter by axis: coding / cheapest / open-weight / speed. Handy for picking a cheap model.
+  Lọc theo trục: coding / rẻ nhất / open-weight / tốc độ. Tiện để chọn một model giá rẻ.
 - **LMArena** — https://lmarena.ai/
-  Blind human voting (Elo). A complement to benchmarks, but biased toward long/pretty answers.
+  Bình chọn mù bởi con người (Elo). Bổ sung cho benchmark, nhưng thiên vị câu trả lời dài/đẹp.
 
-## How to look things up (the procedure, not the results)
-- Need the cheapest model that's good enough → filter "cheapest" on LLM-Stats → re-check the real price on OpenRouter.
-- Need the best coding model → the coding/agentic columns on Artificial Analysis.
-- Don't trust a single table; each one measures a different axis. Cross-check two sources.
-- Every number must be checked AT THE MOMENT you need it — don't memorize it, don't hardcode it.
+## Cách tra cứu (quy trình, không phải kết quả)
+- Cần model rẻ nhất mà vẫn đủ tốt → lọc "cheapest" trên LLM-Stats → kiểm tra lại giá thật trên OpenRouter.
+- Cần model coding tốt nhất → xem cột coding/agentic trên Artificial Analysis.
+- Đừng tin một bảng duy nhất; mỗi bảng đo một trục khác nhau. Hãy đối chiếu hai nguồn.
+- Mọi con số đều phải được kiểm tra ĐÚNG LÚC bạn cần — đừng học thuộc, đừng hardcode.

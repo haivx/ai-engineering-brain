@@ -1,21 +1,21 @@
-# The three model tiers (detailed version)
+# Ba tầng model (bản chi tiết)
 
-See also concepts/routing.md — this is the classification table for deciding when to escalate.
+Xem thêm concepts/routing.md — đây là bảng phân loại để quyết định khi nào nên leo thang (escalate).
 
-| Tier | Use for | Characteristics |
+| Tầng | Dùng cho | Đặc điểm |
 |---|---|---|
-| Closed frontier | The hardest ~20%: complex architecture, nasty debugging, long agent loops | Expensive, strongest, hard to replace |
-| Cheap-but-good | Daily driver: most everyday coding | Balanced price/quality |
-| Cheap open / self-hosted | Boilerplate, extraction, classification, formatting, tests | Dirt cheap, good enough for easy work |
+| Closed frontier | ~20% việc khó nhất: kiến trúc phức tạp, debug hóc búa, agent loop dài | Đắt, mạnh nhất, khó thay thế |
+| Cheap-but-good | Ngựa thồ hằng ngày: phần lớn việc coding thường nhật | Cân bằng giá/chất lượng |
+| Open giá rẻ / self-hosted | Boilerplate, extraction, classification, định dạng, viết test | Cực rẻ, đủ tốt cho việc dễ |
 
-## Decision rules
-1. Which tier does this task belong to? (by real difficulty, not by feel)
-2. Has the cheapest model in that tier been MEASURED as good enough? (eval set)
-3. If unsure → try the cheaper tier first; escalate if the eval catches errors.
+## Quy tắc ra quyết định
+1. Tác vụ này thuộc tầng nào? (theo độ khó thật, không theo cảm tính)
+2. Model rẻ nhất trong tầng đó đã được ĐO là đủ tốt chưa? (bộ eval)
+3. Nếu chưa chắc → thử tầng rẻ hơn trước; leo thang khi eval bắt được lỗi.
 
-## When you're "out of tokens and need a stopgap"
-- Odds and ends → the cheap open tier.
-- Coding that needs quality → the cheap-but-good tier.
-- Genuinely hard work → DON'T downgrade. Waiting / topping up beats letting a cheap model break it and then fixing it.
+## Khi bạn "hết token và cần chữa cháy"
+- Việc vặt → tầng open giá rẻ.
+- Coding cần chất lượng → tầng cheap-but-good.
+- Việc thực sự khó → ĐỪNG hạ cấp. Chờ / nạp thêm tiền vẫn hơn là để model rẻ làm hỏng rồi phải đi sửa.
 
-(Specific model names rotate constantly — look up the current ones in references/leaderboards.md.)
+(Tên model cụ thể thay đổi liên tục — tra tên hiện hành trong references/leaderboards.md.)

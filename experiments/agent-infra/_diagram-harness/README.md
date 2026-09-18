@@ -1,47 +1,46 @@
-# Diagram render/verify harness
+# Harness render/verify cho diagram
 
-This is the shared tool used across `experiments/agent-infra/*/` to satisfy
-step 3 of `planning/PLAN.md`'s working method: every Mermaid diagram must be
-**rendered and visually confirmed** before the concept prose that depends on
-it gets written. It exists because Mermaid does not fail loudly by default —
-see "Why a green screenshot is not proof" below.
+Đây là công cụ dùng chung cho các thư mục `experiments/agent-infra/*/` để thỏa
+mãn bước 3 trong phương pháp làm việc ở `planning/PLAN.md`: mọi diagram Mermaid
+đều phải được **render và xác nhận bằng mắt** trước khi phần văn xuôi concept
+phụ thuộc vào nó được viết ra. Nó tồn tại vì Mermaid mặc định không báo lỗi ồn
+ào — xem "Vì sao một ảnh chụp màu xanh không phải bằng chứng" bên dưới.
 
-## What's here
+## Ở đây có gì
 
-- `mermaid.min.js` — mermaid v11, vendored from
-  `https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js` so rendering
-  is offline/reproducible and nothing is added to this repo's dependencies.
-- `render.mjs` — a zero-dependency Node script. Given a `.mmd` file, it
-  generates a self-contained HTML page that loads the vendored mermaid build,
-  renders the diagram, and exposes a structured `window.__harness` result
-  plus a big visual status banner.
-- `fixtures/` — a known-good and a **known-broken** diagram, with their
-  rendered HTML/PNG committed as proof the harness actually distinguishes
-  the two (see "Self-test" below). Keep this fixture — a verifier that has
-  never been shown to fail is not trustworthy.
+- `mermaid.min.js` — mermaid v11, được vendor từ
+  `https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js` để việc render
+  chạy offline/tái lập được và không thêm dependency nào vào repo này.
+- `render.mjs` — một script Node không phụ thuộc gì. Cho một file `.mmd`, nó sinh
+  ra một trang HTML tự chứa, nạp bản mermaid đã vendor, render diagram, và phơi ra
+  một kết quả có cấu trúc `window.__harness` cùng một banner trạng thái to rõ.
+- `fixtures/` — một diagram chắc chắn đúng và một diagram **chắc chắn hỏng**, kèm
+  bản HTML/PNG đã render được commit lại làm bằng chứng rằng harness thật sự phân
+  biệt được hai trường hợp (xem "Tự kiểm thử" bên dưới). Hãy giữ fixture này — một
+  bộ kiểm chứng chưa bao giờ được chứng minh là biết báo lỗi thì không đáng tin.
 
-## How to run it on one `.mmd`
+## Cách chạy nó trên một file `.mmd`
 
 ```bash
-# 1. Generate the render page next to (or wherever) you like — the script
-#    always references the vendored mermaid.min.js by a relative path.
+# 1. Sinh trang render cạnh file .mmd (hoặc ở đâu tùy bạn) — script luôn
+#    tham chiếu mermaid.min.js đã vendor bằng đường dẫn tương đối.
 node experiments/agent-infra/_diagram-harness/render.mjs \
   experiments/agent-infra/state/diagram.mmd \
   experiments/agent-infra/state/_render.html
 
-# 2. Serve it. The Playwright MCP browser used in this session has the
-#    file: protocol BLOCKED, so you cannot just browser_navigate to a
-#    file:// URL — it errors with "Access to file: protocol is blocked".
-#    Serve the folder over plain HTTP instead (any static server works;
-#    python3 is always available here):
+# 2. Serve nó lên. Trình duyệt Playwright MCP dùng trong session này bị CHẶN
+#    giao thức file:, nên bạn không thể browser_navigate thẳng tới một URL
+#    file:// — nó sẽ báo "Access to file: protocol is blocked".
+#    Hãy serve thư mục qua HTTP thường (static server nào cũng được;
+#    python3 thì luôn có sẵn ở đây):
 python3 -m http.server 8743 --directory experiments/agent-infra
 ```
 
-Then, with the Playwright MCP tools:
+Sau đó, với các tool Playwright MCP:
 
-3. `browser_navigate` to `http://127.0.0.1:8743/state/_render.html` (path is
-   relative to whatever directory you passed to `--directory`).
-4. `browser_evaluate` with a function that polls until done, e.g.:
+3. `browser_navigate` tới `http://127.0.0.1:8743/state/_render.html` (đường dẫn
+   tính tương đối so với thư mục bạn truyền vào `--directory`).
+4. `browser_evaluate` với một hàm poll cho tới khi xong, ví dụ:
    ```js
    async () => {
      for (let i = 0; i < 50; i++) {
@@ -51,80 +50,75 @@ Then, with the Playwright MCP tools:
      return { ...window.__harness, timedOut: true };
    }
    ```
-   Check `result.status === "ok"` and `result.error === null`. Also confirm
-   the page URL in the tool's own response actually matches the file you
-   navigated to (see "Shared browser" warning below) before trusting the
-   result.
-5. `browser_console_messages` (level `error`) as a second check — the page
-   also funnels `console.error` calls into `window.__harness.consoleErrors`,
-   but checking the browser's own console is a good independent cross-check.
-6. `browser_take_screenshot` to save the PNG. Do this **after** step 4/5 so
-   you know what you're capturing is the finished, evaluated state, not a
-   half-rendered page.
-7. Look at the screenshot yourself and compare it to what the experiment's
-   `NOTES.md`/`RUN.md` claims — the harness catches "this doesn't parse", not
-   "this diagram says something false about the experiment." That second
-   check is a human/agent visual-inspection step, not something `render.mjs`
-   can automate.
+   Kiểm tra `result.status === "ok"` và `result.error === null`. Đồng thời xác
+   nhận URL của trang trong chính response của tool khớp với file bạn vừa điều
+   hướng tới (xem cảnh báo "Trình duyệt dùng chung" bên dưới) trước khi tin kết quả.
+5. `browser_console_messages` (mức `error`) như một lớp kiểm tra thứ hai — trang
+   cũng dồn các lời gọi `console.error` vào `window.__harness.consoleErrors`,
+   nhưng kiểm tra console của chính trình duyệt là một phép đối chiếu độc lập tốt.
+6. `browser_take_screenshot` để lưu ảnh PNG. Hãy làm **sau** bước 4/5 để chắc
+   rằng thứ bạn chụp là trạng thái đã hoàn tất và đã được đánh giá, chứ không
+   phải một trang render dở.
+7. Tự nhìn ảnh chụp và so với những gì `NOTES.md`/`RUN.md` của experiment khẳng
+   định — harness bắt được lỗi "cái này không parse được", chứ không bắt được
+   "diagram này nói sai về experiment". Phép kiểm tra thứ hai đó là bước quan sát
+   bằng mắt của con người/agent, không phải thứ `render.mjs` tự động hóa được.
 
-## Why a green screenshot is not proof
+## Vì sao một ảnh chụp màu xanh không phải bằng chứng
 
-Mermaid does not throw a normal JS exception for most syntax problems.
-`mermaid.render()` can resolve "successfully" while the SVG it hands back is
-just mermaid's own error graphic — a bomb icon and the text "Syntax error in
-text". A script that only checks "did a screenshot get taken without the
-page crashing" will happily report a broken diagram as a pass.
+Mermaid không ném ra exception JS thông thường với phần lớn lỗi cú pháp.
+`mermaid.render()` có thể resolve "thành công" trong khi đoạn SVG nó trả về chỉ
+là đồ họa báo lỗi của chính mermaid — một icon quả bom và dòng chữ "Syntax error
+in text". Một script chỉ kiểm tra "có chụp được ảnh mà trang không sập không" sẽ
+vui vẻ báo một diagram hỏng là pass.
 
-`render.mjs` guards against this two ways:
-1. It wraps the render call in try/catch — `mermaid.render()` frequently
-   *does* reject on parse errors (see `fixtures/known-broken.*`), and the
-   thrown message is captured into `window.__harness.error`.
-2. Independently of (1), it inspects the resulting SVG's text content and
-   element classes for mermaid's own error signatures ("Syntax error in
-   text", `.error-icon`, etc.) — this is the path that catches errors
-   mermaid swallows instead of throwing.
+`render.mjs` phòng chuyện này theo hai cách:
+1. Nó bọc lời gọi render trong try/catch — `mermaid.render()` *thường xuyên* có
+   reject khi gặp lỗi parse (xem `fixtures/known-broken.*`), và thông điệp được
+   ném ra sẽ được ghi vào `window.__harness.error`.
+2. Độc lập với (1), nó soi nội dung văn bản và class phần tử của SVG kết quả để
+   tìm các dấu hiệu lỗi của chính mermaid ("Syntax error in text", `.error-icon`,
+   v.v.) — đây là nhánh bắt được những lỗi mà mermaid nuốt chửng thay vì ném ra.
 
-Either path sets `window.__harness.status = "fail"` and repaints the on-page
-banner red with the specific error message, so failure is loud in both the
-structured result *and* the screenshot itself.
+Cả hai nhánh đều đặt `window.__harness.status = "fail"` và tô đỏ banner trên
+trang kèm thông điệp lỗi cụ thể, nên thất bại là ồn ào cả trong kết quả có cấu
+trúc *lẫn* trong chính ảnh chụp.
 
-## Self-test (why you can trust this)
+## Tự kiểm thử (vì sao bạn có thể tin công cụ này)
 
-`fixtures/known-good.mmd` (a 3-node flowchart) and `fixtures/known-broken.mmd`
-(deliberately malformed) were both run through the full procedure above.
-Committed results:
+`fixtures/known-good.mmd` (một flowchart 3 node) và `fixtures/known-broken.mmd`
+(cố ý viết sai) đều đã được chạy qua toàn bộ quy trình ở trên. Kết quả đã commit:
 
-| fixture | `window.__harness.status` | banner in screenshot |
+| fixture | `window.__harness.status` | banner trong ảnh chụp |
 |---|---|---|
-| `known-good.html` / `.png` | `"ok"` | green "RENDER: OK" |
-| `known-broken.html` / `.png` | `"fail"` | red "RENDER: FAIL — exception: Parse error on line 2: ..." plus mermaid's own bomb-icon error graphic |
+| `known-good.html` / `.png` | `"ok"` | màu xanh "RENDER: OK" |
+| `known-broken.html` / `.png` | `"fail"` | màu đỏ "RENDER: FAIL — exception: Parse error on line 2: ..." kèm đồ họa lỗi icon quả bom của chính mermaid |
 
-In this case mermaid actually threw on the broken fixture (caught by path 1
-above); the SVG-inspection fallback (path 2) exists for the cases — noted in
-the task that produced this harness — where mermaid resolves without
-throwing but still emits an inline error graphic. A verifier that cannot be
-shown to fail is not proof of anything, which is why this fixture pair is
-committed rather than thrown away after use.
+Trong trường hợp này mermaid thật sự đã ném exception với fixture hỏng (bắt được
+bởi nhánh 1 ở trên); nhánh dự phòng soi SVG (nhánh 2) tồn tại cho những tình huống
+— đã được ghi nhận trong chính task sinh ra harness này — mà mermaid resolve mà
+không ném gì nhưng vẫn phát ra đồ họa báo lỗi nội tuyến. Một bộ kiểm chứng không
+thể chứng minh là biết báo lỗi thì chẳng chứng minh được gì, nên cặp fixture này
+được commit lại chứ không vứt đi sau khi dùng.
 
-## Known limitation: the Playwright MCP browser is shared
+## Giới hạn đã biết: trình duyệt Playwright MCP là dùng chung
 
-The `browser_navigate` / `browser_evaluate` / `browser_take_screenshot` MCP
-tools in this session drive **one shared browser instance** — if another
-agent in the team navigates it between your `browser_navigate` and your next
-tool call, your next call can silently run against *their* page. Always
-check the `Page URL:` line in each MCP tool's own response against the URL
-you expect before trusting `browser_evaluate`/`browser_take_screenshot`
-output. If it doesn't match, re-navigate and retry.
+Các tool MCP `browser_navigate` / `browser_evaluate` / `browser_take_screenshot`
+trong session này điều khiển **chung một instance trình duyệt** — nếu một agent
+khác trong nhóm điều hướng nó vào giữa lệnh `browser_navigate` của bạn và lời gọi
+tool kế tiếp, lời gọi kế tiếp của bạn có thể âm thầm chạy trên trang *của họ*.
+Luôn đối chiếu dòng `Page URL:` trong response của từng tool MCP với URL bạn mong
+đợi trước khi tin output của `browser_evaluate`/`browser_take_screenshot`. Nếu
+không khớp, hãy điều hướng lại và thử lại.
 
-## Why no scripted (non-MCP) batch runner
+## Vì sao không có batch runner viết bằng script (không qua MCP)
 
-The task allows "a scripted node/playwright approach ... for batch work" as
-an alternative, but actually running Playwright's Node API requires
-`require("playwright")`, which in turn requires installing the `playwright`
-npm package somewhere `node`'s module resolution can see it — that means a
-`node_modules/` inside this repo, which is exactly what we were told not to
-add. (`npx -p playwright node script.js` does *not* expose the package to a
-plain `require()` — confirmed by testing — so there is no way to get the
-Node API from npx's cache alone.) The Playwright MCP tools already available
-to this agent don't have that problem, so they're the only approach used
-here.
+Task cho phép "một cách tiếp cận node/playwright bằng script ... cho việc chạy
+theo lô" như một lựa chọn thay thế, nhưng để thực sự chạy Node API của Playwright
+thì cần `require("playwright")`, mà cái đó lại cần cài package npm `playwright`
+vào một chỗ mà cơ chế phân giải module của `node` nhìn thấy — nghĩa là một thư mục
+`node_modules/` bên trong repo này, đúng thứ chúng ta được dặn là không được thêm
+vào. (`npx -p playwright node script.js` *không* phơi package ra cho một lời gọi
+`require()` thường — đã kiểm chứng bằng thử nghiệm — nên không có cách nào lấy
+Node API chỉ từ cache của npx.) Các tool Playwright MCP vốn đã có sẵn cho agent
+này không gặp vấn đề đó, nên chúng là cách duy nhất được dùng ở đây.

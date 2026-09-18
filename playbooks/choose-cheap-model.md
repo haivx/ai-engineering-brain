@@ -1,17 +1,17 @@
-# Playbook: picking a cheap model as a stopgap
+# Playbook: chọn một model giá rẻ để chữa cháy
 
-For when you run out of quota/tokens and need a quick replacement model.
+Dùng khi bạn hết quota/token và cần một model thay thế gấp.
 
-## Steps
-1. Open **llm-stats.com**, filter by the axis you need (coding / cheapest / open-weight).
-2. Cross-check the REAL price on **openrouter.ai** (prices change constantly — always re-check here).
-3. Classify the task at hand (see concepts/model-tiers.md):
-   - Odds and ends / boilerplate / extraction → pick the cheapest open model that's still "capable".
-   - Coding that needs quality → a decent open coding model with a long enough context.
-   - Genuinely hard work → consider NOT downgrading (wait / top up instead).
-4. In LiteLLM: change only the `MODEL` string. Change nothing else.
-5. If the work matters → run it through the eval set (playbooks/build-eval-set.md) before trusting it.
+## Các bước
+1. Mở **llm-stats.com**, lọc theo trục bạn cần (coding / rẻ nhất / open-weight).
+2. Đối chiếu giá THẬT trên **openrouter.ai** (giá đổi liên tục — luôn kiểm tra lại ở đây).
+3. Phân loại tác vụ đang làm (xem concepts/model-tiers.md):
+   - Việc vặt / boilerplate / extraction → chọn open model rẻ nhất mà vẫn "dùng được".
+   - Coding cần chất lượng → một open coding model tử tế với context đủ dài.
+   - Việc thực sự khó → cân nhắc ĐỪNG hạ cấp (chờ / nạp thêm tiền thì hơn).
+4. Trong LiteLLM: chỉ đổi chuỗi `MODEL`. Không đổi gì khác.
+5. Nếu công việc quan trọng → cho chạy qua bộ eval (playbooks/build-eval-set.md) trước khi tin nó.
 
-## Notes
-- Don't treat public tables as gospel — they're only a prior. Your eval is what decides.
-- Check OpenRouter's Activity tab to confirm the request ran on the provider/price you expected.
+## Ghi chú
+- Đừng coi các bảng xếp hạng công khai là chân lý — chúng chỉ là một prior. Eval của bạn mới là thứ quyết định.
+- Kiểm tra tab Activity của OpenRouter để xác nhận request đã chạy đúng provider/giá bạn mong đợi.

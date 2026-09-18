@@ -1,24 +1,25 @@
-# RUN.md — checkpoint / resume across a real process restart
+# RUN.md — checkpoint / resume xuyên qua một lần khởi động lại tiến trình thật
 
-This is the actual captured stdout of `./run.sh` (Python 3.9.6, macOS, stdlib
-only), run from a clean state. Nothing below is invented — it is copied
-verbatim from a real terminal session. `run.sh` launches `pipeline.py` as a
-genuine subprocess and kills it with a real `SIGKILL` (`kill -9`) from the
-driver, not a simulated failure inside one continuous run; every "restart"
-below is a brand new Python process with no shared memory.
+Đây là stdout thật đã ghi lại của `./run.sh` (Python 3.9.6, macOS, chỉ dùng thư
+viện chuẩn), chạy từ trạng thái sạch. Không có gì bên dưới là bịa ra — tất cả được
+chép nguyên văn từ một phiên terminal thật. `run.sh` khởi chạy `pipeline.py` như
+một subprocess thực thụ và giết nó bằng một `SIGKILL` thật (`kill -9`) từ driver,
+chứ không phải một thất bại mô phỏng bên trong một lần chạy liên tục; mọi lần
+"khởi động lại" bên dưới đều là một tiến trình Python hoàn toàn mới, không chia
+sẻ bộ nhớ.
 
-The 5-step pipeline (`steps.py`): `fetch_input -> validate -> transform ->
-aggregate -> write_report`. Each step commits its output atomically (write to
-a temp file, `os.fsync`, then `os.replace` to the real path) and
-`pipeline.py` appends the step's name to `checkpoint.json` (also written
-atomically) only after that commit succeeds.
+Pipeline 5 bước (`steps.py`): `fetch_input -> validate -> transform ->
+aggregate -> write_report`. Mỗi bước commit output của nó một cách atomic (ghi
+vào file tạm, `os.fsync`, rồi `os.replace` sang đường dẫn thật) và `pipeline.py`
+chỉ ghi thêm tên bước đó vào `checkpoint.json` (cũng được ghi atomic) sau khi lần
+commit ấy thành công.
 
 ---
 
-## 1. Uninterrupted happy-path run (the baseline we compare against)
+## 1. Lần chạy happy-path không gián đoạn (baseline để đem ra so sánh)
 
-Demonstrates: a clean, uninterrupted run of all 5 steps, producing the
-reference final report and its md5.
+Minh họa: một lần chạy sạch, không gián đoạn qua cả 5 bước, tạo ra bản báo cáo
+cuối cùng làm chuẩn cùng mã md5 của nó.
 
 ```
 ==== 2. UNINTERRUPTED HAPPY-PATH RUN (baseline for comparison) ====
@@ -50,12 +51,12 @@ reference final report and its md5.
 
 ---
 
-## 2. Real crash: SIGKILL sent to the process mid `transform` step
+## 2. Crash thật: SIGKILL gửi tới tiến trình giữa bước `transform`
 
-Demonstrates: an actual external `kill -9` (exit status 137, the standard
-"killed by SIGKILL" code) landing after the step's side effect (a temp file)
-is on disk but *before* the atomic rename that would commit it and *before*
-any checkpoint for `transform` is written. This is the half-done-step case.
+Minh họa: một lệnh `kill -9` thật từ bên ngoài (exit status 137, mã chuẩn cho
+"bị giết bởi SIGKILL") rơi xuống sau khi side effect của bước (một file tạm) đã
+nằm trên đĩa nhưng *trước* lệnh rename atomic sẽ commit nó và *trước* khi bất kỳ
+checkpoint nào cho `transform` được ghi. Đây chính là tình huống bước-làm-dở.
 
 ```
 ==== 4. LAUNCH CHECKPOINTED PIPELINE, INJECT REAL SIGKILL MID 'transform' STEP ====
@@ -76,16 +77,16 @@ process exit status after kill: 137
 [23:40:44] CRASH-INJECT[transform]: side effect (temp file) written to disk; signaling driver via trigger file and waiting to be killed
 ```
 
-(The process never gets to log anything further — the next line in the
-source, `os.replace(tmp_path, out_path)`, never ran. This is the real
-`SIGKILL`, not a caught exception: nothing in `pipeline.py` handles it or
-gets a chance to clean up.)
+(Tiến trình không kịp ghi log thêm gì nữa — dòng tiếp theo trong mã nguồn,
+`os.replace(tmp_path, out_path)`, chưa từng chạy. Đây là `SIGKILL` thật, không
+phải một exception bắt được: không có gì trong `pipeline.py` xử lý nó hay có cơ
+hội dọn dẹp.)
 
-### On-disk state after the kill, before any restart
+### Trạng thái trên đĩa sau cú giết, trước mọi lần khởi động lại
 
-Demonstrates: what a half-done step actually leaves behind — the checkpoint
-still only lists the two steps that *fully* committed, and the crashed
-step's side effect survives on disk as an orphaned, uncommitted temp file.
+Minh họa: một bước làm dở thực sự để lại gì — checkpoint vẫn chỉ liệt kê hai bước
+đã commit *trọn vẹn*, còn side effect của bước bị crash sống sót trên đĩa dưới
+dạng một file tạm mồ côi, chưa được commit.
 
 ```
 ==== 5. ON-DISK STATE AFTER THE KILL, BEFORE ANY RESTART ====
@@ -107,14 +108,13 @@ drwxr-xr-x@ 11 xuanhai  staff  352 Sep  7 23:40 ..
 
 ---
 
-## 3. Restart: a brand-new process resumes from the last checkpoint
+## 3. Khởi động lại: một tiến trình hoàn toàn mới resume từ checkpoint gần nhất
 
-Demonstrates: this is a fresh `python3 pipeline.py` invocation (new PID) with
-no shared memory with the killed one. It reads `checkpoint.json` off disk,
-discards the orphaned temp file from the half-done step (idempotent
-re-derivation is the answer here, see NOTES.md), **skips** `fetch_input` and
-`validate` (not redone), and re-runs `transform` from scratch through to
-completion.
+Minh họa: đây là một lần gọi `python3 pipeline.py` mới tinh (PID mới) không chia
+sẻ bộ nhớ gì với tiến trình đã bị giết. Nó đọc `checkpoint.json` từ đĩa, vứt bỏ
+file tạm mồ côi của bước làm dở (câu trả lời ở đây là tính-lại-idempotent, xem
+NOTES.md), **bỏ qua** `fetch_input` và `validate` (không làm lại), và chạy lại
+`transform` từ đầu cho tới khi hoàn tất.
 
 ```
 ==== 6. RESTART: BRAND NEW PROCESS RESUMES FROM LAST CHECKPOINT ====
@@ -138,11 +138,11 @@ completion.
 
 ---
 
-## 4. Equality check: resumed result vs. uninterrupted happy-path result
+## 4. Phép kiểm tra bằng nhau: kết quả sau resume so với kết quả happy-path không gián đoạn
 
-Demonstrates: the whole point of checkpointing — the crash-and-resume run
-produces a byte-identical final artifact to the never-interrupted run, even
-though it took a real kill in the middle.
+Minh họa: toàn bộ ý nghĩa của checkpointing — lần chạy crash-rồi-resume tạo ra
+artifact cuối cùng giống từng byte với lần chạy không hề gián đoạn, dù nó đã hứng
+một cú giết thật ở giữa chừng.
 
 ```
 ==== 7. VERIFY: RESUMED RESULT == UNINTERRUPTED HAPPY-PATH RESULT ====
@@ -157,14 +157,14 @@ RESULT: MATCH -- resumed run produced byte-identical output to the uninterrupted
 
 ---
 
-## 5. Contrast: no-checkpoint baseline restarts from zero
+## 5. Đối chứng: baseline không checkpoint khởi động lại từ số không
 
-Demonstrates: the same crash injected into `no_checkpoint_pipeline.py` (same
-5 steps, same crash point, but it never reads or writes a checkpoint). The
-first process dies the same way (SIGKILL, exit 137) after `fetch_input` and
-`validate` have already run. On restart, since there is no record of what
-happened, **`fetch_input` and `validate` run again** — the exact waste
-checkpointing exists to eliminate.
+Minh họa: cùng cú crash đó tiêm vào `no_checkpoint_pipeline.py` (cùng 5 bước,
+cùng điểm crash, nhưng nó không bao giờ đọc hay ghi checkpoint). Tiến trình đầu
+tiên chết y hệt (SIGKILL, exit 137) sau khi `fetch_input` và `validate` đã chạy
+xong. Khi khởi động lại, vì không có bản ghi nào về chuyện đã xảy ra,
+**`fetch_input` và `validate` chạy lại** — đúng sự lãng phí mà checkpointing sinh
+ra để loại bỏ.
 
 ```
 ==== 8. CONTRAST: NO-CHECKPOINT BASELINE, SAME CRASH, RESTARTS FROM ZERO ====
@@ -187,7 +187,7 @@ process exit status after kill: 137
 restarting no-checkpoint pipeline...
 ```
 
-**Undocumented-until-now side effect worth calling out**: the SIGKILL above landed after `no_checkpoint_pipeline.py` had already written `data/step3_transformed.json.tmp.<pid>` (same temp-file mechanic as `steps.py` uses everywhere). Because `no_checkpoint_pipeline.py` has no startup cleanup step (unlike `pipeline.py`, which globs and deletes `data/*.tmp.*` on every launch — see section 3's `clean_orphaned_temp_files`), that orphaned temp file is never removed by anything in this design. `run4` below creates its own new temp file for `transform` and commits normally, but the stray file from `run3`'s crash is left sitting in `data/` indefinitely — across every future crash of this baseline, the litter would only grow. This was observed directly during a second full `./run.sh` pass (`data/step3_transformed.json.tmp.42704`, flagged during review) and is genuine crash residue, not a bug in the harness. It does not appear in the final resting `data/` snapshot committed alongside this file, because that snapshot was produced by a later, separate `pipeline.py` crash+resume cycle whose `rm -rf data` reset wiped it — see "On-disk resting state" at the bottom of this file.
+**Một tác dụng phụ tới giờ chưa được ghi lại, đáng nêu rõ**: cú SIGKILL ở trên rơi xuống sau khi `no_checkpoint_pipeline.py` đã ghi `data/step3_transformed.json.tmp.<pid>` (cùng cơ chế file tạm mà `steps.py` dùng ở mọi nơi). Vì `no_checkpoint_pipeline.py` không có bước dọn dẹp lúc khởi động (khác với `pipeline.py`, vốn glob và xóa `data/*.tmp.*` ở mỗi lần khởi chạy — xem `clean_orphaned_temp_files` ở mục 3), file tạm mồ côi đó không bao giờ bị thứ gì trong thiết kế này xóa đi. `run4` bên dưới tạo file tạm mới của riêng nó cho `transform` và commit bình thường, nhưng file lạc từ cú crash của `run3` cứ nằm lại trong `data/` vô thời hạn — qua mỗi cú crash tương lai của baseline này, rác chỉ ngày một nhiều. Điều này quan sát được trực tiếp trong lượt chạy `./run.sh` đầy đủ thứ hai (`data/step3_transformed.json.tmp.42704`, phát hiện khi rà soát) và là cặn bã crash thật, không phải bug của harness. Nó không xuất hiện trong ảnh chụp `data/` ở trạng thái nghỉ được commit kèm file này, vì ảnh chụp đó được tạo ra bởi một chu kỳ crash+resume `pipeline.py` riêng, muộn hơn, mà lệnh reset `rm -rf data` của nó đã xóa sạch — xem "Trạng thái nghỉ trên đĩa" ở cuối file này.
 
 ```
 --- run4.log (no-checkpoint, restart -- note fetch_input and validate re-run too) ---
@@ -213,14 +213,14 @@ restarting no-checkpoint pipeline...
 
 ---
 
-## 6. Cost of a non-atomic step (same kind of kill, no temp+rename)
+## 6. Cái giá của một bước không atomic (cùng kiểu giết, không temp+rename)
 
-Demonstrates: `pipeline.py`'s answer to "what happens to a half-done step" is
-atomic commit (temp file + `os.replace`). `unsafe_step_demo.py` shows the
-alternative: writing directly to the real output path in two chunks. The
-same kind of external `SIGKILL`, landing between the two chunks, leaves the
-**real** file permanently corrupted — there is no orphaned temp file to
-discard here, the damage lands exactly on the artifact that matters.
+Minh họa: câu trả lời của `pipeline.py` cho "chuyện gì xảy ra với một bước làm dở"
+là commit atomic (file tạm + `os.replace`). `unsafe_step_demo.py` cho thấy lựa
+chọn còn lại: ghi thẳng vào đường dẫn output thật theo hai mảnh. Cùng kiểu
+`SIGKILL` từ bên ngoài, rơi vào giữa hai mảnh, để lại file **thật** hỏng vĩnh
+viễn — ở đây không có file tạm mồ côi nào để vứt đi, thiệt hại giáng đúng vào
+artifact quan trọng.
 
 ```
 ==== 9. COST OF A NON-ATOMIC STEP: SAME KIND OF KILL, NO TEMP+RENAME ====
@@ -239,43 +239,43 @@ JSON PARSE FAILED as expected: the real file was corrupted by a non-atomic write
 
 ---
 
-## Reproducibility
+## Khả năng tái lập
 
-The full sequence above was re-run a second time from a clean slate
-(`./run.sh`) and produced the identical outcome at every checkpoint: same
-skip pattern, same `RESULT: MATCH` at step 7, same corruption at step 9
-(PIDs differ between runs, everything else is deterministic). It was that
-second pass that produced the orphaned `no_checkpoint_pipeline.py` temp file
-discussed in section 5 above.
+Toàn bộ chuỗi ở trên đã được chạy lại lần thứ hai từ trạng thái sạch (`./run.sh`)
+và cho ra kết quả y hệt tại mọi điểm kiểm tra: cùng mẫu bỏ qua bước, cùng
+`RESULT: MATCH` ở bước 7, cùng kiểu hỏng file ở bước 9 (PID khác nhau giữa các lần
+chạy, mọi thứ còn lại đều deterministic). Chính lượt chạy thứ hai đó đã tạo ra file
+tạm mồ côi của `no_checkpoint_pipeline.py` bàn ở mục 5 phía trên.
 
 ---
 
-## On-disk resting state (what's actually sitting in this folder right now)
+## Trạng thái nghỉ trên đĩa (thứ đang thực sự nằm trong thư mục này lúc này)
 
-`checkpoint.json` and `data/*.json` at rest reflect a **fully completed,
-already-resumed** pipeline: `checkpoint.json` lists all 5 steps, and `data/`
-holds only the 5 final committed outputs — no `*.tmp.*` files, because they
-were produced by one more crash+resume cycle run explicitly to leave a clean
-final snapshot, and `pipeline.py`'s startup step deletes orphaned temp files
-on the very next launch (that's the "removing; the real output was never
-renamed to it" log line in section 3 above). The mid-crash, orphan-present
-disk state is preserved only in this file's transcripts (section 2's `ls -la`
-output) and in `run1.log`/`run2.log` — not as a standing artifact, because
-nothing in `pipeline.py`'s design is meant to preserve it past the next run.
+`checkpoint.json` và `data/*.json` ở trạng thái nghỉ phản ánh một pipeline **đã
+hoàn tất trọn vẹn, đã resume xong**: `checkpoint.json` liệt kê đủ 5 bước, và
+`data/` chỉ giữ 5 output cuối đã commit — không có file `*.tmp.*` nào, vì chúng
+được tạo ra bởi một chu kỳ crash+resume nữa chạy có chủ đích để để lại một ảnh
+chụp cuối cùng sạch sẽ, và bước khởi động của `pipeline.py` xóa các file tạm mồ
+côi ngay ở lần khởi chạy kế tiếp (đó chính là dòng log "removing; the real output
+was never renamed to it" ở mục 3 phía trên). Trạng thái đĩa lúc giữa crash, còn
+file mồ côi, chỉ được bảo tồn trong các bản ghi terminal của file này (output
+`ls -la` ở mục 2) và trong `run1.log`/`run2.log` — không phải dưới dạng một
+artifact thường trực, vì không có gì trong thiết kế của `pipeline.py` nhằm giữ nó
+lại qua lần chạy kế tiếp.
 
-Two related facts worth being explicit about, since they read differently
-depending on which script you're looking at:
+Hai (thực ra là ba) sự thật liên quan đáng nói rõ, vì chúng đọc ra khác nhau tùy
+bạn đang nhìn script nào:
 
-- **`pipeline.py` actively cleans stale `.tmp.*` files on every startup** —
-  it doesn't merely ignore them. This is deliberate tidiness, not a
-  correctness requirement (nothing ever reads those paths either way).
-- **`no_checkpoint_pipeline.py` has no such cleanup and never will** — any
-  temp file it orphans via a mid-`transform` crash sits in `data/`
-  permanently, accumulating across repeated crashes. See section 5 above for
-  the directly observed instance of this.
-- **`crash_trigger`** (repo root) is a live, driver-only IPC file: the
-  crashing child touches it to tell `run.sh` "a side effect has started, kill
-  me now," and each phase in `run.sh` removes it before creating it fresh.
-  It has no meaning once `run.sh` exits, so a final cleanup line was added at
-  the end of the driver to remove it rather than leave unexplained signaling
-  residue on disk after a full run completes.
+- **`pipeline.py` chủ động dọn các file `.tmp.*` cũ ở mỗi lần khởi động** — nó
+  không chỉ đơn thuần lờ chúng đi. Đây là sự gọn gàng có chủ đích, không phải yêu
+  cầu về tính đúng đắn (dù sao cũng chẳng gì đọc các đường dẫn đó).
+- **`no_checkpoint_pipeline.py` không có bước dọn dẹp nào và sẽ không bao giờ có**
+  — bất kỳ file tạm nào nó bỏ mồ côi qua một cú crash giữa `transform` đều nằm
+  trong `data/` vĩnh viễn, tích tụ qua từng lần crash. Xem mục 5 ở trên để thấy
+  trường hợp quan sát được trực tiếp.
+- **`crash_trigger`** (ở gốc repo) là một file IPC sống, chỉ dành cho driver: tiến
+  trình con sắp crash chạm vào nó để báo với `run.sh` rằng "một side effect đã bắt
+  đầu, giết tôi ngay đi", và mỗi giai đoạn trong `run.sh` đều xóa nó trước khi tạo
+  lại mới. Nó vô nghĩa một khi `run.sh` thoát, nên một dòng dọn dẹp cuối đã được
+  thêm vào cuối driver để xóa nó, thay vì để lại cặn bã tín hiệu khó hiểu trên đĩa
+  sau khi một lần chạy đầy đủ kết thúc.

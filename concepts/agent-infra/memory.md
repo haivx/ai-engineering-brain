@@ -1,37 +1,37 @@
-# Memory (Cross-Run Tiering)
+# Memory (phân tầng xuyên nhiều lần chạy)
 
-`state.md` is scoped to one run; this file is one level up — a session
-(several invocations sharing state) — with a durable tier beneath that
-spans every session that ever existed. Working state dies at the end of a
-run; session state survives across runs but still has a bounded lifetime.
+`state.md` có phạm vi một lần chạy; file này ở cấp cao hơn một bậc — một
+session (nhiều lần gọi cùng chia sẻ state) — với một tầng durable bên dưới
+trải dài qua mọi session từng tồn tại. Working state chết khi lần chạy kết
+thúc; session state sống sót qua nhiều lần chạy nhưng vẫn có tuổi thọ hữu hạn.
 
-## Same pattern, one level up
+## Cùng một pattern, cao hơn một bậc
 
-An ephemeral session file is overwritten across runs; a durable
-append-only log accumulates every session's activity forever. Both are
-plain files — the difference is policy, not mechanism: session state is
-deleted outright once it expires, the log is never deleted, only appended
-to.
+Một file session ephemeral bị ghi đè qua các lần chạy; một log durable
+append-only tích lũy hoạt động của mọi session mãi mãi. Cả hai đều chỉ là
+file thường — khác biệt nằm ở chính sách, không phải cơ chế: session state
+bị xóa thẳng khi hết hạn, còn log thì không bao giờ bị xóa, chỉ được ghi thêm.
 
-## Promotion order is the load-bearing part
+## Thứ tự promotion mới là phần chịu lực
 
-When a session expires, its facts must be appended to the durable log —
-and that write confirmed — *before* the session file is deleted. Reverse
-the order, or fail to sequence it, and a crash between the two operations
-reproduces `state.md`'s crash-and-wipe loss one layer up. Expiry alone
-isn't what makes this safe; promotion-before-deletion is.
+Khi một session hết hạn, các dữ kiện của nó phải được ghi thêm vào log
+durable — và lần ghi đó phải được xác nhận — *trước khi* file session bị
+xóa. Đảo ngược thứ tự, hoặc không sắp xếp thứ tự rõ ràng, thì một cú crash
+xen giữa hai thao tác sẽ tái hiện đúng kiểu mất mát crash-rồi-xóa-sạch của
+`state.md`, chỉ ở tầng cao hơn. Bản thân việc hết hạn không phải thứ làm
+điều này an toàn; promotion-trước-khi-xóa mới là.
 
-## A deliberate limit: expiry means "start over," not "continue"
+## Một giới hạn cố ý: hết hạn nghĩa là "làm lại từ đầu", không phải "đi tiếp"
 
-Once a session expires, the next run starts a brand-new session with no
-facts carried forward, even though the predecessor's summary is sitting in
-the durable log. Continuity would require deliberately reading that
-summary back on bootstrap; this proof did not build it.
+Khi một session hết hạn, lần chạy kế tiếp bắt đầu một session hoàn toàn
+mới, không mang theo dữ kiện nào, dù bản tóm tắt của session tiền nhiệm vẫn
+nằm trong log durable. Muốn có tính liên tục thì phải chủ ý đọc lại bản tóm
+tắt đó lúc bootstrap; bản chứng minh này chưa làm điều đó.
 
-## What this doesn't prove
+## Điều này chưa chứng minh được gì
 
-Concurrent runs racing on the same session file, and reading facts back out
-of a past summary to seed a new session, are both untested.
+Nhiều lần chạy đồng thời tranh chấp cùng một file session, và việc đọc
+ngược dữ kiện từ một bản tóm tắt cũ để khởi tạo session mới, đều chưa được kiểm chứng.
 
 ```mermaid
 flowchart LR
@@ -63,4 +63,4 @@ flowchart LR
     style LOG fill:#bbf7d0,stroke:#166534
 ```
 
-Evidence: `experiments/agent-infra/memory/` (`RUN.md`, `NOTES.md`, `diagram.mmd` / `diagram.png`).
+Bằng chứng: `experiments/agent-infra/memory/` (`RUN.md`, `NOTES.md`, `diagram.mmd` / `diagram.png`).

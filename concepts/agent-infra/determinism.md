@@ -1,48 +1,48 @@
-# Determinism at the Non-Deterministic Boundary
+# Determinism tại ranh giới bất định
 
-Isolate an inherently non-deterministic call (an LLM, a sampled output, a
-variable-latency API) behind one function with a fixed input/output
-contract. Keep everything on either side of it — assembling the input,
-parsing the output, deciding what to do — as pure code with no hidden
-randomness of its own.
+Hãy cô lập một lời gọi vốn dĩ bất định (một LLM, một output được lấy mẫu,
+một API có độ trễ dao động) sau đúng một hàm với contract input/output cố
+định. Giữ cho mọi thứ ở hai phía của nó — lắp ráp input, parse output,
+quyết định phải làm gì — là code thuần, không có yếu tố ngẫu nhiên ẩn nào
+của riêng chúng.
 
-## What "deterministic around the boundary" means
+## "Deterministic quanh ranh giới" nghĩa là gì
 
-Not that the final decision is always the same — the boundary's semantic
-content can legitimately differ between runs, and a correct decision layer
-differs right along with it. What must stay fixed is the process: given the
-same boundary output, the surrounding code always does the same thing.
-Proven directly: the deterministic log (input assembly, parsed label,
-decision) came back byte-identical across repeated runs, while the
-boundary's own output (wording, confidence, latency) varied every time.
+Không phải là quyết định cuối cùng luôn giống nhau — nội dung ngữ nghĩa
+tại ranh giới hoàn toàn có thể khác nhau giữa các lần chạy, và một tầng
+quyết định đúng đắn sẽ khác theo. Thứ phải cố định là quy trình: với cùng
+một output từ ranh giới, code bao quanh luôn làm đúng một việc như nhau.
+Đã chứng minh trực tiếp: log deterministic (lắp ráp input, nhãn đã parse,
+quyết định) trở về giống nhau từng byte qua nhiều lần chạy lặp lại, trong
+khi output của chính ranh giới (câu chữ, confidence, độ trễ) thay đổi mỗi lần.
 
-## Leaks don't just add noise, they flip decisions
+## Rò rỉ không chỉ thêm nhiễu, nó lật ngược quyết định
 
-Non-determinism sneaks past the boundary in code that looks deterministic
-at a glance: a parser keyed on incidental phrasing rather than semantic
-content, a wall-clock timestamp inside what looks like pure decision logic,
-hash-order iteration that only reshuffles across separate process restarts.
-Strongest evidence: a naive parser keyed on phrasing flipped a real
-access-control decision (grant vs. deny) for the identical input and
-identical underlying verdict, purely because the model's wording happened
-to start with a different word. Nothing crashed or errored — the system
-silently did the wrong thing while its logs still looked healthy.
+Tính bất định lọt qua ranh giới trong những đoạn code thoạt nhìn có vẻ
+deterministic: một parser bám vào cách diễn đạt ngẫu nhiên thay vì nội dung
+ngữ nghĩa, một timestamp lấy từ đồng hồ hệ thống nằm trong thứ trông như
+logic quyết định thuần túy, hay việc duyệt theo thứ tự hash chỉ xáo trộn
+giữa các lần khởi động tiến trình khác nhau. Bằng chứng mạnh nhất: một
+parser ngây thơ bám vào câu chữ đã lật ngược một quyết định access-control
+thật (cho phép hay từ chối) với cùng một input và cùng một phán quyết nền,
+chỉ vì model tình cờ mở đầu bằng một từ khác. Không có gì crash hay báo lỗi
+— hệ thống lặng lẽ làm sai trong khi log vẫn trông khỏe mạnh.
 
-## Record/replay comes almost free
+## Record/replay gần như miễn phí
 
-Once the boundary is a real function argument rather than a hardcoded call,
-capturing its output once to a fixture and replaying it back through the
-pipeline makes the entire log — including the previously varying half —
-byte-identical across runs.
+Một khi ranh giới đã là một tham số hàm thực thụ thay vì một lời gọi
+hardcode, việc ghi lại output của nó một lần vào fixture rồi phát lại qua
+pipeline sẽ khiến toàn bộ log — kể cả nửa vốn hay thay đổi — giống nhau
+từng byte qua các lần chạy.
 
-## What this doesn't prove
+## Điều này chưa chứng minh được gì
 
-This is a structural claim, not variance reduction — reducing how much the
-boundary itself varies (temperature, seeding) is a separate, complementary
-technique. The proof also stayed offline by design: it did not exercise
-real sampling variance over a live network call, and "same label survives
-different phrasing" was a property of a deliberately built stub, not a
-measured property of any real model.
+Đây là một khẳng định về cấu trúc, không phải về giảm phương sai — giảm
+mức dao động của chính ranh giới (temperature, seeding) là một kỹ thuật
+riêng, bổ trợ. Bản chứng minh cũng cố ý chạy offline: nó không hề đụng tới
+phương sai lấy mẫu thật qua một lời gọi mạng thật, và "cùng một nhãn sống
+sót qua các cách diễn đạt khác nhau" là tính chất của một stub được dựng
+có chủ đích, không phải tính chất đo được của một model thật nào.
 
 ```mermaid
 flowchart LR
@@ -65,4 +65,4 @@ flowchart LR
     style DetLog fill:#eef,stroke:#339
 ```
 
-Evidence: `experiments/agent-infra/determinism/` (`RUN.md`, `NOTES.md`, `diagram.mmd` / `diagram.png`).
+Bằng chứng: `experiments/agent-infra/determinism/` (`RUN.md`, `NOTES.md`, `diagram.mmd` / `diagram.png`).

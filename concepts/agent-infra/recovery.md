@@ -1,52 +1,55 @@
-# Recovery: Checkpoint and Resume Across a Restart
+# Recovery: checkpoint và resume xuyên qua một lần khởi động lại
 
-A multi-step process that must restart from scratch after any mid-way
-crash is broken by design, regardless of how well it performs on the happy
-path. Proof: a real `SIGKILL` landing mid-step in a 5-step pipeline,
-followed by a brand-new process — no shared memory with the one killed —
-resuming and finishing it.
+Một tiến trình nhiều bước mà phải chạy lại từ đầu sau bất kỳ cú crash giữa
+chừng nào thì đã hỏng ngay từ thiết kế, bất kể nó chạy tốt đến đâu trên
+happy path. Bằng chứng: một lệnh `SIGKILL` thật rơi vào giữa một bước trong
+pipeline 5 bước, rồi một tiến trình hoàn toàn mới — không chia sẻ bộ nhớ gì
+với tiến trình đã bị giết — tiếp tục và hoàn thành nó.
 
-## A checkpoint must never lie
+## Checkpoint không bao giờ được phép nói dối
 
-A step's checkpoint isn't written until its output is committed atomically
-(temp file, fsync, rename into place). That ordering guarantees the
-checkpoint and the artifact it describes can never disagree. A `SIGKILL`
-mid-step lands on the temp file, never the committed path — so the crash
-leaves an orphaned temp file and nothing else, and the step is safe to redo
-from scratch, since it's a pure function of its already-committed input.
+Checkpoint của một bước chỉ được ghi sau khi output của bước đó đã commit
+một cách atomic (file tạm, fsync, rename vào đúng chỗ). Thứ tự đó bảo đảm
+checkpoint và artifact mà nó mô tả không bao giờ mâu thuẫn nhau. Một
+`SIGKILL` giữa bước sẽ rơi vào file tạm, không bao giờ rơi vào đường dẫn đã
+commit — nên cú crash chỉ để lại một file tạm mồ côi và không gì khác, và
+bước đó có thể làm lại từ đầu an toàn, vì nó là một hàm thuần của input đã
+được commit trước đó.
 
-## The equality check is the real evidence
+## Phép so sánh bằng nhau mới là bằng chứng thật
 
-Restarting after the kill skipped the two steps the checkpoint already
-confirmed, redid the interrupted step from scratch, and finished the rest —
-producing a final artifact byte-identical to a never-interrupted run. For
-pure, deterministic steps, resumed is indistinguishable from uninterrupted.
+Khởi động lại sau cú giết đã bỏ qua hai bước mà checkpoint đã xác nhận, làm
+lại từ đầu bước bị gián đoạn, rồi hoàn tất phần còn lại — cho ra một artifact
+cuối cùng giống hệt từng byte so với một lần chạy không hề bị gián đoạn. Với
+các bước thuần và deterministic, chạy tiếp sau gián đoạn là không thể phân
+biệt với chạy liền một mạch.
 
-## Two mechanisms, not one — both have to be right
+## Hai cơ chế, không phải một — cả hai đều phải đúng
 
-Checkpointing and atomic writes are separate guarantees. The same kind of
-kill directed at a step that writes its real output directly (no temp file,
-no rename) leaves that file permanently corrupted, and no checkpoint logic
-fixes it — there's no concept of "this committed file is actually bad."
-Atomicity is what makes a checkpoint trustworthy in the first place.
+Checkpointing và atomic write là hai bảo đảm riêng biệt. Cùng kiểu giết đó
+nhắm vào một bước ghi thẳng output thật của nó (không file tạm, không
+rename) sẽ khiến file đó hỏng vĩnh viễn, và không logic checkpoint nào cứu
+được — vì không hề tồn tại khái niệm "file đã commit này thực ra là rác".
+Chính tính atomic mới làm cho một checkpoint đáng tin ngay từ đầu.
 
-## The cost of skipping this doesn't stay small
+## Cái giá của việc bỏ qua chuyện này không hề nhỏ mãi
 
-The same crash against a pipeline with no checkpoint concept restarts
-every step from step 1, including work that already finished — a rounding
-error for five cheap steps, but it generalizes badly once a step is slow or
-has a real side effect (an API call, a charge) a checkpoint would have
-prevented from firing twice. This is distinct from retry/fallback/loop-guard
-around a single call — real-time resilience within a step, not resumability
-across a restart — and no experiment here covers that.
+Cũng cú crash ấy giáng vào một pipeline không có khái niệm checkpoint sẽ
+khởi động lại mọi bước từ bước 1, kể cả phần việc đã xong — chỉ là sai số
+làm tròn với năm bước rẻ tiền, nhưng nó tổng quát hóa rất tệ một khi có một
+bước chậm hoặc có side effect thật (một lời gọi API, một lần bị tính tiền)
+mà checkpoint lẽ ra đã ngăn không cho kích hoạt hai lần. Chuyện này khác với
+retry/fallback/loop-guard quanh một lời gọi đơn lẻ — đó là khả năng chống
+chịu theo thời gian thực bên trong một bước, không phải khả năng resume
+xuyên qua một lần khởi động lại — và chưa experiment nào ở đây phủ điều đó.
 
-## What this doesn't prove
+## Điều này chưa chứng minh được gì
 
-Concurrent or parallel step execution, checkpointing partway through one
-expensive step, recovery for non-idempotent side effects (a payment, a sent
-email — these need a different mechanism, such as a dedup key), and a
-crash landing during the checkpoint file's own atomic write are all
-untested here.
+Thực thi các bước đồng thời hoặc song song, checkpoint ở giữa chừng một
+bước đắt đỏ, recovery cho các side effect không idempotent (một khoản thanh
+toán, một email đã gửi — những thứ này cần cơ chế khác, ví dụ dedup key), và
+một cú crash rơi đúng lúc chính file checkpoint đang được ghi atomic — tất cả
+đều chưa được kiểm chứng ở đây.
 
 ```mermaid
 sequenceDiagram
@@ -75,4 +78,4 @@ sequenceDiagram
     D->>D: compare final report to uninterrupted<br/>happy-path run -> byte-identical
 ```
 
-Evidence: `experiments/agent-infra/recovery/` (`RUN.md`, `NOTES.md`, `diagram.mmd` / `diagram.png`).
+Bằng chứng: `experiments/agent-infra/recovery/` (`RUN.md`, `NOTES.md`, `diagram.mmd` / `diagram.png`).

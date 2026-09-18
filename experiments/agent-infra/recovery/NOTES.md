@@ -1,99 +1,93 @@
-# NOTES.md — what the run actually showed
+# NOTES.md — lần chạy thực sự cho thấy điều gì
 
-- **A checkpoint only proves a step is "done" once its output is
-  atomically committed.** `pipeline.py` never appends a step name to
-  `checkpoint.json` until after `os.replace()` succeeds for that step. This
-  means the checkpoint and the on-disk artifact it describes can never
-  disagree — there is no window where the checkpoint says "transform done"
-  but the real `step3_transformed.json` is missing or partial.
+- **Một checkpoint chỉ chứng minh được một bước đã "xong" khi output của nó đã
+  được commit atomic.** `pipeline.py` không bao giờ ghi thêm tên một bước vào
+  `checkpoint.json` cho tới khi `os.replace()` của bước đó thành công. Điều này
+  nghĩa là checkpoint và artifact trên đĩa mà nó mô tả không bao giờ mâu thuẫn
+  nhau — không tồn tại khoảng thời gian nào mà checkpoint nói "transform xong"
+  trong khi `step3_transformed.json` thật lại thiếu hoặc dở dang.
 
-- **The real answer to "what happens to a half-done step" is: nothing
-  happens to it, because it never touches the real path.** `step_transform`
-  writes to `step3_transformed.json.tmp.<pid>` and only renames it into
-  place at the end. A `SIGKILL` landing in between (which is what run.sh
-  actually does — see RUN.md section 2) leaves an orphaned temp file and
-  nothing else. The step is safe to just re-run from scratch on restart,
-  because it's a pure function of its already-committed input
-  (`step2_validated.json`), which the crash never touched.
+- **Câu trả lời thật cho "chuyện gì xảy ra với một bước làm dở" là: chẳng gì
+  xảy ra với nó cả, vì nó chưa từng chạm vào đường dẫn thật.** `step_transform`
+  ghi vào `step3_transformed.json.tmp.<pid>` và chỉ rename vào đúng chỗ ở cuối.
+  Một `SIGKILL` rơi vào khoảng giữa (đúng thứ run.sh làm — xem RUN.md mục 2) chỉ
+  để lại một file tạm mồ côi và không gì khác. Bước đó có thể chạy lại từ đầu an
+  toàn khi khởi động lại, vì nó là hàm thuần của input đã được commit
+  (`step2_validated.json`) mà cú crash chưa từng đụng tới.
 
-- **Idempotent-by-recompute turned out to be simpler than any kind of
-  "resume mid-step" logic.** I didn't need to track partial progress inside
-  a step (e.g. "which array elements were already transformed") — cheap
-  steps can just always restart at their own beginning. That only works
-  because each step is small, deterministic, and reads a stable input file;
-  it would not work as-is for a step with an expensive or non-idempotent
-  side effect (e.g. "send an email", "charge a card") — that class needs a
-  different answer (dedup keys, a "did I already send this" record), which
-  this experiment doesn't cover.
+- **Idempotent-bằng-cách-tính-lại hóa ra đơn giản hơn mọi kiểu logic "resume
+  giữa bước".** Tôi không cần theo dõi tiến độ dở dang bên trong một bước (ví dụ
+  "phần tử mảng nào đã được transform") — các bước rẻ cứ luôn bắt đầu lại từ đầu
+  của chính chúng. Điều đó chỉ đúng vì mỗi bước đều nhỏ, deterministic, và đọc
+  một file input ổn định; nó sẽ không dùng được nguyên xi cho một bước có side
+  effect đắt đỏ hoặc không idempotent (ví dụ "gửi email", "trừ tiền thẻ") — lớp
+  đó cần câu trả lời khác (dedup key, một bản ghi "tôi đã gửi cái này chưa"), và
+  experiment này không phủ.
 
-- **The orphaned temp file is genuinely harmless, but only because nothing
-  ever reads `*.tmp.*` paths.** `pipeline.py` cleans them up on startup as
-  tidiness, not correctness — I proved this by noting the log line "removing;
-  the real output was never renamed to it, so nothing referenced it." If a
-  future step ever globbed the data directory instead of reading a named
-  path, this guarantee would break.
+- **File tạm mồ côi thực sự vô hại, nhưng chỉ vì không ai đọc các đường dẫn
+  `*.tmp.*`.** `pipeline.py` dọn chúng lúc khởi động vì gọn gàng, không phải vì
+  tính đúng đắn — tôi chứng minh điều này qua dòng log "đang xóa; output thật
+  chưa từng được rename thành nó, nên không gì tham chiếu tới nó". Nếu sau này
+  có bước nào glob cả thư mục data thay vì đọc một đường dẫn có tên, bảo đảm này
+  sẽ vỡ.
 
-- **Cleanup-of-orphans turned out to be a checkpointing side effect, not a
-  given.** `pipeline.py` deletes stale `.tmp.*` files on every startup;
-  `no_checkpoint_pipeline.py` has no such logic at all, since it has no
-  concept of "startup" beyond "run everything." A crash mid-`transform` in
-  the no-checkpoint baseline leaves its orphaned temp file sitting in `data/`
-  forever — confirmed directly (`data/step3_transformed.json.tmp.42704`
-  during a second full test pass, see RUN.md section 5). It's not just that
-  the no-checkpoint baseline redoes work; it also litters uncommitted debris
-  that nothing in that design ever revisits. That was not something I set
-  out to demonstrate — it fell out of using the same crash-injection
-  mechanism against both scripts.
+- **Việc dọn file mồ côi hóa ra là tác dụng phụ của checkpointing, không phải
+  chuyện đương nhiên.** `pipeline.py` xóa các file `.tmp.*` cũ ở mỗi lần khởi
+  động; `no_checkpoint_pipeline.py` không có logic đó chút nào, vì nó không có
+  khái niệm "khởi động" ngoài "chạy hết mọi thứ". Một cú crash giữa `transform`
+  ở bản baseline không checkpoint sẽ để file tạm mồ côi nằm trong `data/` mãi
+  mãi — đã xác nhận trực tiếp (`data/step3_transformed.json.tmp.42704` trong
+  lượt test đầy đủ thứ hai, xem RUN.md mục 5). Không chỉ là bản không checkpoint
+  làm lại công việc; nó còn vứt rác chưa commit mà chẳng gì trong thiết kế đó
+  quay lại đụng tới. Đây không phải thứ tôi định chứng minh — nó rơi ra từ việc
+  dùng cùng cơ chế tiêm crash lên cả hai script.
 
-- **Checkpoint granularity is per-step, not per-record.** The pipeline
-  redid the entire `transform` step from scratch rather than resuming from
-  wherever it got to inside that step. That's the right tradeoff for a
-  5-step, sub-second pipeline; a longer-running or more expensive step would
-  need finer-grained checkpoints inside itself (or the step should be split
-  into smaller sub-steps) to avoid redoing expensive work.
+- **Độ mịn của checkpoint là theo từng bước, không theo từng bản ghi.** Pipeline
+  làm lại toàn bộ bước `transform` từ đầu thay vì tiếp tục từ chỗ nó đã tới bên
+  trong bước đó. Đó là đánh đổi đúng cho một pipeline 5 bước chạy dưới một giây;
+  một bước chạy lâu hơn hoặc đắt hơn sẽ cần checkpoint mịn hơn bên trong chính nó
+  (hoặc nên tách bước đó thành các bước con nhỏ hơn) để khỏi làm lại việc đắt đỏ.
 
-- **The no-checkpoint contrast made the cost concrete rather than
-  hypothetical.** Same crash, same step, same 5 steps — but `run4.log` shows
-  `fetch_input` and `validate` both re-running after the restart, work the
-  checkpointed version explicitly skipped (`run2.log`: two `SKIP` lines).
-  For 5 cheap steps this is a rounding error; the point generalizes badly
-  once any of the skipped steps is slow or has an external side effect
-  (an API call, a charge) that a checkpoint would have prevented from
-  happening twice.
+- **Phép đối chứng không-checkpoint làm cho cái giá trở nên cụ thể chứ không
+  còn giả định.** Cùng cú crash, cùng bước, cùng 5 bước — nhưng `run4.log` cho
+  thấy `fetch_input` và `validate` đều chạy lại sau khi khởi động lại, đúng phần
+  việc mà bản có checkpoint đã bỏ qua tường minh (`run2.log`: hai dòng `SKIP`).
+  Với 5 bước rẻ thì đó chỉ là sai số làm tròn; nhưng luận điểm tổng quát hóa rất
+  tệ một khi bất kỳ bước bị bỏ qua nào chậm hoặc có side effect ra bên ngoài
+  (một lời gọi API, một lần bị tính tiền) mà checkpoint lẽ ra đã ngăn không cho
+  xảy ra hai lần.
 
-- **The "resumed run == uninterrupted run" equality check is the strongest
-  evidence in this experiment**, not the log narration. `RUN.md` section 4
-  shows both runs' final `step5_report.json` hashing to the identical md5
-  (`a2d801bf...`). A resumed run isn't just "close enough" — for this
-  pipeline (pure, deterministic steps) it is byte-for-byte the same
-  artifact a never-interrupted run would have produced.
+- **Phép kiểm tra "lần chạy resume == lần chạy không gián đoạn" mới là bằng
+  chứng mạnh nhất trong experiment này**, chứ không phải phần tường thuật log.
+  `RUN.md` mục 4 cho thấy `step5_report.json` cuối cùng của cả hai lần chạy đều
+  băm ra cùng một md5 (`a2d801bf...`). Một lần chạy được resume không chỉ "gần
+  đủ giống" — với pipeline này (các bước thuần, deterministic) nó là artifact
+  giống từng byte với thứ mà một lần chạy không hề gián đoạn sẽ tạo ra.
 
-- **Non-atomic writes turn a recoverable failure into an unrecoverable
-  one.** `unsafe_step_demo.py` is the same kind of kill, but because it
-  writes directly to the real path in two chunks, the resulting
-  `unsafe_output.json` is permanently truncated invalid JSON — and nothing
-  about restarting fixes it, because there is no checkpoint concept telling
-  anyone that file is bad. This was the most useful negative result: it
-  shows atomicity and checkpointing are two separate mechanisms that both
-  have to be right — a checkpoint that points at a corrupted file is
-  useless.
+- **Ghi không atomic biến một thất bại khôi phục được thành một thất bại không
+  khôi phục được.** `unsafe_step_demo.py` cũng bị giết y hệt, nhưng vì nó ghi
+  thẳng vào đường dẫn thật thành hai mảnh, file `unsafe_output.json` kết quả là
+  JSON hỏng, bị cắt cụt vĩnh viễn — và khởi động lại chẳng sửa được gì, vì không
+  có khái niệm checkpoint nào nói cho ai biết file đó là rác. Đây là kết quả phủ
+  định hữu ích nhất: nó cho thấy tính atomic và checkpointing là hai cơ chế riêng
+  biệt và cả hai đều phải đúng — một checkpoint trỏ vào một file hỏng thì vô dụng.
 
-- **Surprise: I didn't need `try/except` anywhere for the crash path.** The
-  crash is a real `SIGKILL`, which Python cannot catch or run cleanup code
-  for. That's exactly why the atomic-write + checkpoint-after-commit design
-  matters — it has to survive a failure mode where the crashing process gets
-  zero chance to react, not just a `try/except`-able exception. (The
-  `sys.exit(99)` "safety timeout" path in `maybe_crash()` *is* a normal
-  exception-like exit, but it only ever fires if the driver fails to deliver
-  the kill in time — it did not fire in either captured run.)
+- **Bất ngờ: tôi không cần `try/except` ở bất cứ đâu cho nhánh crash.** Cú crash
+  là một `SIGKILL` thật, thứ mà Python không thể bắt hay chạy code dọn dẹp. Đó
+  chính xác là lý do thiết kế ghi-atomic + checkpoint-sau-khi-commit lại quan
+  trọng — nó phải sống sót qua một kiểu thất bại mà tiến trình đang chết có zero
+  cơ hội phản ứng, chứ không chỉ một exception bắt được bằng `try/except`. (Nhánh
+  "safety timeout" `sys.exit(99)` trong `maybe_crash()` *đúng* là một lối thoát
+  kiểu exception bình thường, nhưng nó chỉ kích hoạt nếu driver không kịp gửi
+  lệnh giết — và nó đã không kích hoạt ở cả hai lần chạy được ghi lại.)
 
-- **What this experiment does not prove**: concurrent/parallel step
-  execution, checkpointing partway through a single expensive step, crash
-  recovery for non-idempotent side effects (network calls, payments), or
-  checkpoint-store corruption itself (what if the kill lands during the
-  checkpoint's own `os.replace`? — not exercised here, though the same
-  atomic-write mechanism is used for `checkpoint.json` too, so the argument
-  should extend, but I did not force a kill at that exact instant to check).
+- **Điều experiment này không chứng minh**: thực thi các bước đồng thời/song
+  song, checkpoint ở giữa chừng một bước đắt đỏ, khôi phục sau crash cho các
+  side effect không idempotent (lời gọi mạng, thanh toán), hay chính việc kho
+  checkpoint bị hỏng (nếu lệnh giết rơi đúng lúc `os.replace` của chính checkpoint
+  thì sao? — chưa thử ở đây, dù cùng cơ chế ghi atomic cũng được dùng cho
+  `checkpoint.json`, nên lập luận lẽ ra vẫn mở rộng được, nhưng tôi đã không ép
+  một cú giết đúng khoảnh khắc đó để kiểm chứng).
 
-See [[recovery]] concept file and `experiments/agent-infra/recovery/RUN.md`
-/ `diagram.mmd` for the evidence this is distilled from.
+Xem file concept [[recovery]] và `experiments/agent-infra/recovery/RUN.md`
+/ `diagram.mmd` để đọc bằng chứng mà phần này được chưng cất ra từ đó.

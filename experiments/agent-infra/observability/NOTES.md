@@ -1,66 +1,62 @@
-# NOTES.md — what the run actually showed
+# NOTES.md — lần chạy thực sự cho thấy điều gì
 
-- The pass-rate number and the structured log answer different questions,
-  and you need both. `12/18` (66.7%) tells you *how much* is broken;
-  grepping `logs/run_baseline.jsonl` by `case_id` tells you *which* case,
-  *which pipeline step*, and *why* in one command. `naive_baseline_demo.py`
-  reaches the identical 12/18 with zero structure and cannot answer any of
-  those follow-ups — see RUN.md §5.
+- Con số pass-rate và log có cấu trúc trả lời hai câu hỏi khác nhau, và bạn cần
+  cả hai. `12/18` (66,7%) cho biết *bao nhiêu* thứ đang hỏng; grep
+  `logs/run_baseline.jsonl` theo `case_id` cho biết *case nào*, *bước pipeline
+  nào*, và *vì sao*, chỉ trong một lệnh. `naive_baseline_demo.py` cũng đạt đúng
+  12/18 với zero cấu trúc và không trả lời được bất kỳ câu hỏi tiếp theo nào —
+  xem RUN.md §5.
 
-- Changing one variable (`--threshold` 0.0 -> 0.2) moved the pass rate by
-  a real, non-zero amount (+11.1 points) and did so through explainable
-  per-case flips, not noise. `compare_runs.py` renders those flips
-  directly from `results/eval_*.json` — no re-reading of the JSONL log was
-  needed to get the before/after verdict, only to get the *root cause*.
+- Đổi đúng một biến (`--threshold` 0.0 -> 0.2) làm pass rate dịch chuyển một
+  lượng thật, khác không (+11,1 điểm), và dịch chuyển qua các case bị lật kết
+  quả giải thích được, không phải nhiễu. `compare_runs.py` dựng thẳng các case
+  bị lật đó từ `results/eval_*.json` — không cần đọc lại log JSONL mới có phán
+  quyết trước/sau, chỉ cần đọc lại khi muốn tìm *nguyên nhân gốc*.
 
-- The threshold change was not a pure win. It fixed 5 false positives
-  (off-topic text incidentally matching one keyword) but broke 3 true
-  positives (genuine tickets whose only signal was one keyword). A single
-  pass-rate number would have shown "+11.1%" and hidden that trade-off
-  entirely; the per-case diff in `compare_runs.py` is what surfaces it.
-  Surprise: it would have been easy to report only the headline number and
-  call the change strictly better, which it isn't.
+- Thay đổi ngưỡng không phải một thắng lợi thuần túy. Nó sửa được 5 false
+  positive (văn bản lạc đề tình cờ khớp một từ khóa) nhưng làm hỏng 3 true
+  positive (ticket thật mà tín hiệu duy nhất chỉ là một từ khóa). Một con số
+  pass-rate đơn lẻ sẽ hiện ra "+11,1%" và che giấu hoàn toàn sự đánh đổi đó;
+  chính bản diff theo từng case trong `compare_runs.py` mới phơi nó ra.
+  Bất ngờ: rất dễ chỉ báo cáo con số tổng rồi tuyên bố thay đổi này tốt hơn hẳn,
+  trong khi nó không phải vậy.
 
-- Distinguishing "the pipeline ran and produced a wrong answer" from "the
-  pipeline crashed" required a `status` field (`ok` vs `error`) at the
-  step level, not just at the case level. Both look identical from a bare
-  pass/fail count. This is the single field that made the localized-failure
-  argument in RUN.md §5 possible.
+- Phân biệt "pipeline đã chạy và cho câu trả lời sai" với "pipeline đã crash"
+  đòi hỏi một trường `status` (`ok` vs `error`) ở mức bước, không chỉ ở mức
+  case. Cả hai trông y hệt nhau nếu chỉ đếm pass/fail trần. Đây là trường duy
+  nhất khiến lập luận về lỗi được định vị ở RUN.md §5 trở nên khả thi.
 
-- `step_seq` plus `step` name (not just "an error occurred") let me see
-  the crash happened in `normalize`, at step 1 of 5 — before `tokenize`,
-  `score`, or `decide` ever ran. Without a per-step record, "it failed"
-  gives no information about which stage of a 4-stage pipeline never even
-  started.
+- `step_seq` cộng với tên `step` (chứ không chỉ "đã xảy ra lỗi") cho tôi thấy
+  cú crash xảy ra ở `normalize`, tại bước 1 trên 5 — trước khi `tokenize`,
+  `score` hay `decide` kịp chạy. Không có bản ghi theo từng bước, chữ "nó fail"
+  chẳng nói gì về việc giai đoạn nào trong pipeline 4 giai đoạn thậm chí còn
+  chưa khởi động.
 
-- No seeding was actually needed for a stable pass rate: this system has
-  zero randomness in its decision logic (pure keyword counting), so two
-  runs of the same threshold produce bit-for-bit identical `pass_rate`
-  values (verified in RUN.md §4). The "seed your non-determinism"
-  requirement turned out to be satisfiable by having none in the scored
-  path — worth noting because a more realistic system (LLM-in-the-loop)
-  would not get this for free and would need explicit seeding or mocking
-  to get the same reproducibility.
+- Thực ra không cần seeding nào để có pass rate ổn định: hệ thống này có zero
+  ngẫu nhiên trong logic quyết định (chỉ đếm từ khóa thuần túy), nên hai lần
+  chạy cùng một ngưỡng cho ra giá trị `pass_rate` giống nhau từng bit (đã kiểm
+  chứng ở RUN.md §4). Yêu cầu "hãy seed phần bất định của bạn" hóa ra được thỏa
+  mãn bằng cách không có phần bất định nào trên đường đi được chấm điểm — đáng
+  ghi nhận vì một hệ thống thực tế hơn (có LLM trong vòng lặp) sẽ không được
+  điều này miễn phí và sẽ cần seeding hoặc mock tường minh mới đạt cùng mức tái lập.
 
-- `run_id` (a `uuid4`) is intentionally NOT seeded and differs every run.
-  That's fine — it's a correlation key, not part of the scored logic. It's
-  a useful reminder that "make it deterministic" only needs to apply to
-  the fields the eval score depends on, not to every field in the log.
+- `run_id` (một `uuid4`) cố ý KHÔNG được seed và khác nhau ở mỗi lần chạy. Thế
+  là ổn — nó là khóa để nối dữ liệu, không phải một phần của logic được chấm
+  điểm. Đó là một lời nhắc hữu ích rằng "làm cho nó deterministic" chỉ cần áp
+  dụng cho những trường mà điểm eval phụ thuộc vào, không phải mọi trường trong log.
 
-- Truncating logged input/output (`_truncate`, 200 chars) mattered in
-  practice: the `case_result` record embeds a full outcome dict as its
-  `output` field, and without truncation a handful of verbose cases would
-  make the JSONL harder to skim by eye. This is a real operational
-  concern, not a hypothetical one — it showed up in the actual log output
-  (see the `<truncated>` marker in RUN.md §5b).
+- Cắt ngắn input/output được ghi log (`_truncate`, 200 ký tự) có ý nghĩa thật
+  trên thực tế: bản ghi `case_result` nhúng nguyên một dict kết quả vào trường
+  `output`, và nếu không cắt ngắn thì vài case dài dòng sẽ khiến file JSONL khó
+  lướt mắt hơn hẳn. Đây là mối bận tâm vận hành thật, không phải giả định — nó
+  đã lộ ra trong output log thực tế (xem dấu `<truncated>` ở RUN.md §5b).
 
-- The eval harness treats "errored" as a strict subset of "failed" for
-  scoring (an error always fails the case) but logs it as a distinct
-  status. Two different failure *rates* (misclassification vs. crash) are
-  worth tracking separately even though only one number ("passed") is the
-  headline metric — the summary record keeps both (`failed` and `errored`
-  are separate counters, not merged).
+- Bộ eval harness coi "errored" là tập con nghiêm ngặt của "failed" khi chấm
+  điểm (một lỗi luôn làm case đó fail) nhưng ghi log nó như một status riêng.
+  Hai *tỉ lệ* thất bại khác nhau (phân loại sai vs. crash) đáng được theo dõi
+  riêng, dù chỉ một con số ("passed") là chỉ số tổng — bản ghi summary giữ cả
+  hai (`failed` và `errored` là hai bộ đếm riêng, không gộp).
 
-Evidence backing every point above: `experiments/agent-infra/observability/`
+Bằng chứng cho mọi điểm ở trên: `experiments/agent-infra/observability/`
 (`router.py`, `eval_harness.py`, `compare_runs.py`, `naive_baseline_demo.py`,
 `eval_cases.json`, `logs/`, `results/`, `RUN.md`).

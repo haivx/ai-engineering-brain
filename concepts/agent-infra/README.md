@@ -1,81 +1,84 @@
 # Agent Infra
 
-Mental models for the infra layer underneath an agent — state, memory,
-determinism, observability, resumability — each distilled only from a
-proven experiment in the matching `experiments/agent-infra/<topic>/`
-folder, per this repo's proof-before-prose rule.
+Các mô hình tư duy cho tầng hạ tầng nằm dưới một agent — state, memory,
+determinism, observability, khả năng resume — mỗi thứ chỉ được chưng cất
+từ một experiment đã chứng minh trong thư mục
+`experiments/agent-infra/<topic>/` tương ứng, đúng theo quy tắc
+proof-before-prose của repo này.
 
-## What's here
+## Ở đây có gì
 
-- `state.md` — working state, single run. Dies at run end; separate
-  disposable scratch from an append-only durable log so a crash never
-  loses committed progress.
-- `memory.md` — state across runs (a session), between `state.md`'s scope
-  and the permanent durable log. Session state has a bounded lifetime and
-  must be promoted into the durable log before deletion, or it repeats
-  `state.md`'s failure one level up.
-- `determinism.md` — isolating a non-deterministic call behind one
-  function boundary so everything around it stays reproducible, and what
-  happens when that isolation leaks.
-- `observability.md` — the structured trace underneath an eval's headline
-  number. Owns tracing/instrumentation only; eval methodology lives in
-  `concepts/eval.md`, and the eval-harness half feeds
+- `state.md` — working state, phạm vi một lần chạy. Chết khi lần chạy kết
+  thúc; tách phần scratch dùng-một-lần khỏi một log durable append-only để
+  một cú crash không bao giờ làm mất tiến độ đã commit.
+- `memory.md` — state xuyên nhiều lần chạy (một session), nằm giữa phạm vi
+  của `state.md` và log durable vĩnh viễn. Session state có tuổi thọ hữu
+  hạn và phải được promote vào log durable trước khi bị xóa, nếu không nó
+  lặp lại đúng thất bại của `state.md` ở cấp cao hơn một bậc.
+- `determinism.md` — cô lập một lời gọi bất định sau một ranh giới hàm duy
+  nhất để mọi thứ quanh nó vẫn tái lập được, và chuyện gì xảy ra khi sự cô
+  lập đó bị rò rỉ.
+- `observability.md` — cái trace có cấu trúc nằm dưới con số tổng của một
+  bài eval. Chỉ phụ trách tracing/instrumentation; phương pháp luận eval
+  nằm ở `concepts/eval.md`, còn nửa eval-harness cung cấp đầu vào cho
   `playbooks/build-eval-set.md`.
-- `recovery.md` — checkpoint-and-resume across a real process restart: a
-  checkpoint is only trustworthy paired with atomic commits.
+- `recovery.md` — checkpoint-và-resume xuyên qua một lần khởi động lại tiến
+  trình thật: một checkpoint chỉ đáng tin khi đi kèm với các lần commit atomic.
 
-`state.md` and `memory.md` are deliberately separate: "what dies at the
-end of one run" versus "what persists across runs, and for how long."
-Neither covers the other's scope.
+`state.md` và `memory.md` được tách riêng một cách có chủ đích: "thứ gì
+chết khi một lần chạy kết thúc" so với "thứ gì tồn tại qua nhiều lần chạy,
+và trong bao lâu". Không file nào bao phủ phạm vi của file kia.
 
-## Still opening framing only (no experiment yet)
+## Vẫn mới chỉ là khung mở đầu (chưa có experiment)
 
-These came from the cluster scaffold and remain short framing paragraphs.
-Per this repo's proof-before-prose rule, each gets a deep dive only once
-an experiment lands in `experiments/agent-infra/<topic>/` — not before:
+Những file này đến từ khung dựng cụm ban đầu và vẫn chỉ là các đoạn framing
+ngắn. Theo quy tắc proof-before-prose của repo, mỗi file chỉ được đào sâu
+khi đã có một experiment đáp xuống `experiments/agent-infra/<topic>/` — không
+sớm hơn:
 
-- `context-engineering.md` — what goes into context each step
-- `tool-calling.md` — the model to world interface
-- `orchestration.md` — single loop vs multi-agent, sub-agents
-- `guardrails.md` — validate before acting
+- `context-engineering.md` — thứ gì được đưa vào context ở mỗi bước
+- `tool-calling.md` — giao diện từ model ra thế giới
+- `orchestration.md` — vòng lặp đơn so với multi-agent, sub-agent
+- `guardrails.md` — xác thực trước khi hành động
 
-## Wrap-up: which of these would silently break first?
+## Tổng kết: cái nào trong số này sẽ hỏng âm thầm trước tiên?
 
-Determinism leaks break first in time — no failure event required. The
-determinism experiment showed a naive parser flip a real access-control
-decision (grant vs. deny) for the identical input, purely from incidental
-phrasing, with no exception raised
-(`experiments/agent-infra/determinism/RUN.md`, §2). That can happen on the
-first ordinary run of an otherwise healthy system.
+Rò rỉ determinism hỏng sớm nhất về mặt thời gian — không cần bất kỳ sự cố
+nào xảy ra trước. Experiment về determinism cho thấy một parser ngây thơ đã
+lật ngược một quyết định access-control thật (cho phép hay từ chối) với cùng
+một input, thuần túy do cách diễn đạt tình cờ, mà không có exception nào được
+ném ra (`experiments/agent-infra/determinism/RUN.md`, §2). Điều đó có thể xảy
+ra ngay ở lần chạy bình thường đầu tiên của một hệ thống vốn khỏe mạnh.
 
-The other "state-shaped" patterns need something to go wrong first — a
-crash, an expiry, a restart — and differ in how loud the aftermath is:
+Các pattern "dạng state" còn lại cần có gì đó hỏng trước — một cú crash, một
+lần hết hạn, một lần khởi động lại — và khác nhau ở chỗ hậu quả ồn ào tới đâu:
 
-- State and memory tiering failures are silent but conditional: the
-  single-blob anti-pattern looks *better* than the correct design while
-  healthy (`state/NOTES.md`), and only reveals the loss at the exact
-  moment of a crash-and-wipe. The session-tiering failure in `memory.md`
-  is the same shape, gated behind expiry instead of a run crash.
-- Recovery failures split in two. Losing checkpointing entirely is *loud*:
-  steps visibly re-run in the log (`recovery/RUN.md`, §5). Non-atomic
-  writes inside the same experiment are silent: a corrupted file sits on
-  disk with nothing to flag it as bad (`recovery/NOTES.md`).
+- Thất bại phân tầng state và memory thì âm thầm nhưng có điều kiện:
+  anti-pattern gộp-một-khối trông *hay hơn* thiết kế đúng khi hệ thống khỏe
+  mạnh (`state/NOTES.md`), và chỉ lộ ra mất mát đúng vào khoảnh khắc
+  crash-rồi-xóa-sạch. Thất bại phân tầng session trong `memory.md` cũng cùng
+  hình dạng ấy, chỉ khác là bị chặn sau một lần hết hạn thay vì một cú crash.
+- Thất bại recovery chia làm hai. Mất hẳn checkpointing thì *ồn ào*: các bước
+  chạy lại rành rành trong log (`recovery/RUN.md`, §5). Còn ghi không atomic
+  trong cùng experiment ấy thì âm thầm: một file hỏng nằm trên đĩa mà chẳng có
+  gì đánh dấu nó là rác (`recovery/NOTES.md`).
 
-Whether any of this is ever *discovered* is governed by a fifth pattern
-that isn't a failure mode of its own: observability. The observability
-experiment proves this independently — a structured harness and a naive
-print-wrapped version scored the identical 12/18 on the identical 18
-cases, and the naive version couldn't tell a crash apart from a wrong
-answer (`observability/RUN.md`, §5). A system with no structured trace
-shows "a slightly worse score" for a genuine regression and a code-level
-crash, indistinguishably — and the same experiment shows a bare headline
-can hide a real trade-off even when nothing crashed at all (+11.1pp net,
-but 3 true positives quietly traded for 5 false positives fixed).
+Việc những chuyện này có bao giờ được *phát hiện* hay không lại do một pattern
+thứ năm quyết định, và bản thân nó không phải một kiểu thất bại: observability.
+Experiment về observability chứng minh điều này một cách độc lập — một harness
+có cấu trúc và một phiên bản ngây thơ bọc lệnh print đều cho 12/18 y hệt nhau
+trên cùng 18 case, và phiên bản ngây thơ không phân biệt nổi một cú crash với
+một câu trả lời sai (`observability/RUN.md`, §5). Một hệ thống không có trace
+có cấu trúc sẽ hiển thị "điểm số tệ hơn một chút" cho cả một regression thật
+lẫn một cú crash ở mức code, không tài nào phân biệt — và cũng experiment ấy
+cho thấy một con số tổng trần trụi có thể che giấu một đánh đổi thật ngay cả
+khi chẳng có gì crash (+11,1 điểm ròng, nhưng 3 true positive bị đánh đổi âm
+thầm để sửa được 5 false positive).
 
-So the honest order: determinism leaks corrupt behavior first, with zero
-preconditions. Observability decides whether that corruption — or the
-state-tiering wipe, or the checkpoint corruption — is ever noticed, rather
-than silently absorbed into an aggregate score that still looks
-reasonable. Skipping the determinism boundary corrupts a decision on the
-first run; skipping tiering or atomicity plants a failure for the next
-crash; skipping observability guarantees nobody can tell why when it does.
+Vậy nên thứ tự trung thực là: rò rỉ determinism làm hỏng hành vi trước tiên,
+với zero điều kiện tiên quyết. Observability quyết định liệu sự hỏng hóc đó —
+hay cú xóa sạch do phân tầng state, hay file checkpoint hỏng — có bao giờ được
+nhận ra, thay vì bị nuốt chửng âm thầm vào một con số tổng trông vẫn còn hợp
+lý. Bỏ qua ranh giới determinism làm hỏng một quyết định ngay từ lần chạy đầu;
+bỏ qua phân tầng hay tính atomic là gieo sẵn một thất bại cho cú crash kế tiếp;
+bỏ qua observability là bảo đảm rằng khi nó xảy ra, không ai biết vì sao.

@@ -1,17 +1,15 @@
-# RUN.md — captured terminal output
+# RUN.md — output terminal đã ghi lại
 
-Environment: Python 3.9.6, stdlib only, run from this folder
-(`experiments/agent-infra/observability/`). Every block below is the exact
-stdout of the command shown above it (captured to a file and pasted in
-verbatim, not retyped) — a one-line note above each says what it
-demonstrates.
+Môi trường: Python 3.9.6, chỉ dùng thư viện chuẩn, chạy từ thư mục này
+(`experiments/agent-infra/observability/`). Mỗi khối bên dưới là stdout chính xác
+của lệnh ghi phía trên nó (được capture ra file rồi dán nguyên văn, không gõ lại)
+— một dòng ghi chú phía trên mỗi khối nói nó minh họa điều gì.
 
-## 1. Baseline run (threshold = 0.0): structured log + eval score
+## 1. Lần chạy baseline (threshold = 0.0): log có cấu trúc + điểm eval
 
-Demonstrates: structured logging running underneath a real eval — every
-step of every one of the 18 cases produced one JSONL record in
-`logs/run_baseline.jsonl`, and the run still reduces to one number (66.7%)
-up front.
+Minh họa: logging có cấu trúc chạy bên dưới một bài eval thật — mỗi bước của cả
+18 case đều sinh ra một bản ghi JSONL trong `logs/run_baseline.jsonl`, và lần
+chạy vẫn rút gọn về một con số (66,7%) ở ngay đầu.
 
 ```
 $ python3 eval_harness.py --threshold 0.0 --tag baseline
@@ -47,10 +45,10 @@ unknown_incidental_settings  unknown    account    FAIL
 malformed_none_input         None       None       FAIL   ERROR: AttributeError: 'NoneType' object has no attribute 'lower'
 ```
 
-## 2. Changed run (threshold = 0.2): same cases, one variable changed
+## 2. Lần chạy đã thay đổi (threshold = 0.2): cùng bộ case, đổi đúng một biến
 
-Demonstrates: only `--threshold` changed (0.0 -> 0.2). Same 18 cases, same
-router.py, same code path, different outcomes on the near-threshold cases.
+Minh họa: chỉ `--threshold` thay đổi (0.0 -> 0.2). Cùng 18 case, cùng router.py,
+cùng đường code, khác kết quả ở những case nằm sát ngưỡng.
 
 ```
 $ python3 eval_harness.py --threshold 0.2 --tag stricter
@@ -86,14 +84,13 @@ unknown_incidental_settings  unknown    unknown    PASS
 malformed_none_input         None       None       FAIL   ERROR: AttributeError: 'NoneType' object has no attribute 'lower'
 ```
 
-## 3. Before/after comparison: the number, not a feeling
+## 3. So sánh trước/sau: con số, không phải cảm giác
 
-Demonstrates: raising the confidence threshold from 0.0 to 0.2 net-improves
-the pass rate (+11.1 points), but not for free — it trades 3 weak-signal
-true positives (`*_weak_single`) for 5 corrected false positives on
-genuinely off-topic input (`unknown_*`). The comparison table shows both
-the net verdict AND the specific trade-off, from the numbers alone, with
-no re-reading of the raw log required for this step.
+Minh họa: nâng ngưỡng confidence từ 0.0 lên 0.2 cải thiện pass rate về mặt ròng
+(+11,1 điểm), nhưng không miễn phí — nó đánh đổi 3 true positive có tín hiệu yếu
+(`*_weak_single`) để lấy 5 false positive được sửa trên input thực sự lạc đề
+(`unknown_*`). Bảng so sánh cho thấy cả phán quyết ròng LẪN sự đánh đổi cụ thể,
+chỉ từ các con số, không cần đọc lại log thô ở bước này.
 
 ```
 $ python3 compare_runs.py --before baseline --after stricter
@@ -119,16 +116,16 @@ unknown_incidental_bill      FAIL -> PASS   billing      unknown      unknown
 unknown_incidental_settings  FAIL -> PASS   account      unknown      unknown
 ```
 
-## 4. Reproducibility check: pass rate is stable across reruns
+## 4. Kiểm tra khả năng tái lập: pass rate ổn định qua các lần chạy lại
 
-Demonstrates: no seeding was even needed here because the router has zero
-randomness in its decision logic — pass_rate is bit-for-bit identical
-across reruns. (`run_id` differs every run via `uuid.uuid4()`, but that's
-an identifier for correlation, not part of the scored logic — the
-constraint that "non-determinism must be seeded so pass-rate is stable"
-is satisfied trivially by having none in the scored path.) The rerun
-artifacts were deleted immediately after this check; they are not part of
-the committed proof.
+Minh họa: ở đây thậm chí không cần seeding nào, vì router có zero ngẫu nhiên
+trong logic quyết định — pass_rate giống nhau từng bit qua các lần chạy lại.
+(`run_id` khác nhau ở mỗi lần chạy nhờ `uuid.uuid4()`, nhưng đó là một định danh
+để nối dữ liệu, không phải một phần của logic được chấm điểm — ràng buộc "phần
+bất định phải được seed để pass-rate ổn định" được thỏa mãn một cách hiển nhiên
+bằng cách không có phần bất định nào trên đường đi được chấm điểm.) Các artifact
+của lần chạy lại đã bị xóa ngay sau phép kiểm tra này; chúng không thuộc bản
+chứng minh được commit.
 
 ```
 $ python3 eval_harness.py --threshold 0.0 --tag baseline_rerun > /dev/null 2>&1
@@ -138,24 +135,22 @@ baseline_rerun pass_rate: 0.6667
 REPRODUCIBLE
 ```
 
-## 5. The real argument: localizing one failure in seconds
+## 5. Lập luận thật: định vị một lỗi trong vài giây
 
-Both runs above show `malformed_none_input` failing with the same one-line
-note: `ERROR: AttributeError: 'NoneType' object has no attribute 'lower'`.
-That note only exists because the harness's console summary happens to
-surface it. Two contrasts below show why the *structured log underneath*
-is the part that actually matters, not the console print.
+Cả hai lần chạy ở trên đều cho thấy `malformed_none_input` fail với cùng một dòng
+ghi chú: `ERROR: AttributeError: 'NoneType' object has no attribute 'lower'`.
+Dòng ghi chú đó chỉ tồn tại vì bản tóm tắt trên console của harness tình cờ hiển
+thị nó ra. Hai phép đối chứng bên dưới cho thấy vì sao *log có cấu trúc nằm bên
+dưới* mới là phần thực sự quan trọng, chứ không phải dòng print trên console.
 
-### 5a. What a bare pass-rate number tells you: nothing
+### 5a. Một con số pass-rate trần trụi cho bạn biết gì: không gì cả
 
-Demonstrates: `naive_baseline_demo.py` runs the exact same 18 cases through
-the exact same `router.py`, wrapped in one bare
-`try/except Exception: print("case failed")`. It reaches the identical
-12/18 score, but the six failures are indistinguishable: five are wrong
-classifications, one is an outright crash on bad input, and this output
-does not let you tell which is which, let alone which case_id or which
-pipeline step. You'd have to go add prints and re-run to even discover the
-crash exists as a distinct category of failure.
+Minh họa: `naive_baseline_demo.py` chạy đúng 18 case đó qua đúng `router.py` đó,
+bọc trong một lệnh `try/except Exception: print("case failed")` trần trụi. Nó đạt
+đúng điểm 12/18, nhưng sáu lỗi thì không phân biệt nổi: năm lỗi là phân loại sai,
+một lỗi là crash hẳn vì input xấu, và output này không cho bạn biết cái nào là
+cái nào, nói gì tới case_id nào hay bước pipeline nào. Bạn sẽ phải đi cắm print
+rồi chạy lại mới phát hiện ra rằng cú crash tồn tại như một loại thất bại riêng.
 
 ```
 $ python3 naive_baseline_demo.py
@@ -168,16 +163,15 @@ case failed
 12/18 passed
 ```
 
-### 5b. What the structured log tells you: exact case, exact step, exact cause, in one grep
+### 5b. Log có cấu trúc cho bạn biết gì: đúng case, đúng bước, đúng nguyên nhân, chỉ trong một lệnh grep
 
-Demonstrates: one grep on `case_id` answers, in seconds, which case broke
-(`malformed_none_input`), which pipeline step it broke in (`normalize`,
-`step_seq: 1` — it never even reached `tokenize`/`score`/`decide`), the
-exact exception, and that it took under 0.01ms to fail (so it's not a
-hang). `status: "error"` also makes it mechanically distinguishable from
-the five `status: "ok"` records for cases that ran clean but predicted the
-wrong label — something neither `naive_baseline_demo.py`'s print output
-nor a bare pass-rate number can tell apart.
+Minh họa: một lệnh grep theo `case_id` trả lời trong vài giây: case nào đã vỡ
+(`malformed_none_input`), nó vỡ ở bước pipeline nào (`normalize`, `step_seq: 1`
+— thậm chí chưa từng chạm tới `tokenize`/`score`/`decide`), exception chính xác
+là gì, và rằng nó fail trong chưa tới 0,01ms (nên không phải treo). `status:
+"error"` cũng khiến nó phân biệt được một cách máy móc với năm bản ghi `status:
+"ok"` của các case chạy trót lọt nhưng đoán sai nhãn — thứ mà cả output print của
+`naive_baseline_demo.py` lẫn một con số pass-rate trần trụi đều không phân biệt nổi.
 
 ```
 $ grep '"case_id": "malformed_none_input"' logs/run_baseline.jsonl | python3 -m json.tool --json-lines
@@ -207,7 +201,7 @@ $ grep '"case_id": "malformed_none_input"' logs/run_baseline.jsonl | python3 -m 
 }
 ```
 
-## 6. Files this run produced
+## 6. Các file lần chạy này tạo ra
 
 ```
 $ wc -l logs/run_baseline.jsonl logs/run_stricter.jsonl
@@ -216,13 +210,13 @@ $ wc -l logs/run_baseline.jsonl logs/run_stricter.jsonl
      176 total
 ```
 
-88 records per run = 17 clean cases x 5 records each (normalize, tokenize,
-score, decide, case_result) = 85, + 1 malformed case x 2 records
-(normalize error, case_result) = 87, + 1 run_summary record = 88.
+88 bản ghi mỗi lần chạy = 17 case sạch x 5 bản ghi mỗi case (normalize, tokenize,
+score, decide, case_result) = 85, + 1 case lỗi định dạng x 2 bản ghi (lỗi ở
+normalize, case_result) = 87, + 1 bản ghi run_summary = 88.
 
-Other files in this folder: `router.py` (system under test),
-`eval_harness.py` (structured logger + eval runner), `compare_runs.py`
-(before/after diff), `naive_baseline_demo.py` (contrast piece for §5a),
-`eval_cases.json` (18 cases), `logs/run_baseline.jsonl` /
-`logs/run_stricter.jsonl` (structured logs), `results/eval_baseline.json`
-/ `results/eval_stricter.json` (eval summaries + per-case outcomes).
+Các file khác trong thư mục này: `router.py` (hệ thống được kiểm thử),
+`eval_harness.py` (bộ ghi log có cấu trúc + trình chạy eval), `compare_runs.py`
+(diff trước/sau), `naive_baseline_demo.py` (phần đối chứng cho §5a),
+`eval_cases.json` (18 case), `logs/run_baseline.jsonl` /
+`logs/run_stricter.jsonl` (log có cấu trúc), `results/eval_baseline.json`
+/ `results/eval_stricter.json` (tóm tắt eval + kết quả theo từng case).

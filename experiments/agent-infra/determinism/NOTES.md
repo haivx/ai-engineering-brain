@@ -1,83 +1,77 @@
-# NOTES.md — what the runs actually showed
+# NOTES.md — các lần chạy thực sự cho thấy điều gì
 
-For the Concepts Editor writing `concepts/agent-infra/determinism.md`.
-See `RUN.md` for the captured output these bullets are drawn from.
+Dành cho người viết `concepts/agent-infra/determinism.md`.
+Xem `RUN.md` để đọc output đã ghi lại mà các gạch đầu dòng dưới đây rút ra từ đó.
 
-- The core claim held exactly as stated: isolating the non-deterministic
-  call behind one function with a fixed input/output contract (`boundary.py:
-  non_deterministic_call`) let everything else (`assemble_input`,
-  `parse_output`, `decide`) produce byte-identical JSON logs across two
-  runs of the same input, every time, while the boundary's own output
-  (wording, confidence, latency) varied every time. No exceptions across
-  ~10 runs.
+- Khẳng định cốt lõi đúng y như phát biểu: cô lập lời gọi bất định sau đúng một
+  hàm với contract input/output cố định (`boundary.py: non_deterministic_call`)
+  khiến mọi thứ còn lại (`assemble_input`, `parse_output`, `decide`) sinh ra
+  các log JSON giống nhau từng byte qua hai lần chạy cùng một input, lần nào
+  cũng vậy, trong khi output của chính ranh giới (câu chữ, confidence, độ trễ)
+  thay đổi mỗi lần. Không có ngoại lệ nào qua ~10 lần chạy.
 
-- The most useful result wasn't the stable run — it was the leak demo.
-  On one invocation of `leak_demo.py`, the naive-parse leak actually
-  **flipped the access-control decision** (`grant_access` vs `deny_access`)
-  for the identical input, purely because the model's phrasing happened to
-  start with a different word ("Approve." vs "Yes,"). The ground-truth
-  verdict never changed. This is a much stronger argument than "the logs
-  look different" — a leaked-non-determinism bug in the parsing layer can
-  silently change what the system *does*, not just what it *logs*.
+- Kết quả hữu ích nhất không phải là lần chạy ổn định — mà là phần demo rò rỉ.
+  Trong một lần gọi `leak_demo.py`, rò rỉ do parse ngây thơ đã thực sự
+  **lật ngược quyết định access-control** (`grant_access` vs `deny_access`)
+  với cùng một input, thuần túy vì câu chữ của model tình cờ mở đầu bằng một từ
+  khác ("Approve." vs "Yes,"). Phán quyết nền thì không hề đổi. Đây là lập luận
+  mạnh hơn nhiều so với "log trông khác nhau" — một bug rò rỉ tính bất định ở
+  tầng parse có thể âm thầm thay đổi thứ hệ thống *làm*, chứ không chỉ thứ nó *ghi log*.
 
-- Confirms a subtlety worth stating precisely in the concept: "deterministic
-  outside the boundary" does not mean "the same answer every time" — the
-  disciplined pipeline's final decision can legitimately vary if the
-  boundary's semantic content varies. What must stay stable is the
-  *process*: given the same boundary output, the surrounding code always
-  does the same thing. The stub was deliberately built so the label is
-  recoverable regardless of phrasing, which is what makes "same decision
-  both runs" a meaningful proof rather than a coincidence of the stub.
+- Xác nhận một điểm tinh tế đáng phát biểu cho chính xác trong concept:
+  "deterministic bên ngoài ranh giới" không có nghĩa là "cùng một câu trả lời
+  mọi lúc" — quyết định cuối cùng của một pipeline kỷ luật hoàn toàn có thể
+  khác đi nếu nội dung ngữ nghĩa tại ranh giới khác đi. Thứ phải ổn định là
+  *quy trình*: với cùng một output từ ranh giới, code bao quanh luôn làm đúng
+  một việc. Stub được dựng có chủ đích sao cho nhãn luôn khôi phục được bất kể
+  cách diễn đạt, và chính điều đó khiến "cùng một quyết định ở cả hai lần chạy"
+  là một bằng chứng có ý nghĩa chứ không phải sự trùng hợp của stub.
 
-- The `set()`-iteration leak needed a genuinely separate observation
-  method: within one running process, a set's iteration order does NOT
-  reshuffle between two calls — it only varies **across separate `python3`
-  process invocations** (CPython's per-process string-hash randomization).
-  I had to shell out to `subprocess` to actually demonstrate this one; the
-  in-process two-calls pattern used for the other leaks would have shown
-  "identical" and hidden the bug. Worth a line in the concept: some
-  non-determinism only shows up in prod (many process restarts), not in a
-  dev loop that calls a function twice in one process.
+- Rò rỉ do duyệt `set()` đòi hỏi một phương pháp quan sát thực sự khác biệt:
+  trong cùng một tiến trình đang chạy, thứ tự duyệt của một set KHÔNG bị xáo lại
+  giữa hai lần gọi — nó chỉ thay đổi **giữa các lần gọi tiến trình `python3`
+  riêng biệt** (do CPython ngẫu nhiên hóa hash chuỗi theo từng tiến trình). Tôi
+  đã phải gọi ra `subprocess` mới minh họa được cái này; kiểu gọi-hai-lần trong
+  cùng tiến trình dùng cho các rò rỉ khác sẽ cho ra "giống hệt" và che mất bug.
+  Đáng một dòng trong concept: một số tính bất định chỉ lộ ra ở production
+  (nhiều lần khởi động lại tiến trình), chứ không lộ ra trong vòng lặp dev gọi
+  một hàm hai lần trong cùng một tiến trình.
 
-- The wall-clock-timestamp leak was the most trivial to introduce and the
-  most obviously bad in hindsight — one line (`"decided_at": time.time()`)
-  inside code that otherwise looked like pure decision logic. It's a good
-  concrete example of "hidden randomness" that has nothing to do with an
-  LLM at all; determinism-at-the-boundary discipline is a general
-  data-flow property, not an LLM-specific concern.
+- Rò rỉ timestamp từ đồng hồ hệ thống là thứ dễ tạo ra nhất và rõ ràng là tệ
+  nhất khi nhìn lại — một dòng (`"decided_at": time.time()`) nằm trong đoạn code
+  mà ngoài ra trông y hệt logic quyết định thuần túy. Đây là ví dụ cụ thể rất tốt
+  cho "ngẫu nhiên ẩn" chẳng liên quan gì tới LLM; kỷ luật determinism-tại-ranh-giới
+  là một tính chất chung của luồng dữ liệu, không phải mối bận tâm riêng của LLM.
 
-- Record/replay (the bonus) worked with almost no extra code: because
-  `run_pipeline()` already took `boundary_fn` as a parameter (needed for
-  the `--live` opt-in path anyway), plugging in a fixture-reading closure
-  made the *entire* log — including the previously-varying `nd` section —
-  byte-identical across runs. The practical payoff described in PLAN.md
-  §6 is real and cheap once the boundary is a real function argument
-  rather than a hardcoded call.
+- Record/replay (phần thưởng thêm) chạy được gần như không cần thêm code: vì
+  `run_pipeline()` vốn đã nhận `boundary_fn` làm tham số (cần cho nhánh tùy chọn
+  `--live` dù sao đi nữa), chỉ cần cắm vào một closure đọc fixture là *toàn bộ*
+  log — kể cả phần `nd` vốn hay thay đổi — trở nên giống nhau từng byte qua các
+  lần chạy. Lợi ích thực tế mô tả ở PLAN.md §6 là có thật và rẻ, một khi ranh
+  giới đã là một tham số hàm thực thụ thay vì một lời gọi hardcode.
 
-- Surprise / thing that didn't go as expected: I initially assumed the
-  non-deterministic (`nd`) logs would visibly differ on literally every
-  pair of runs, and wrote `run_stable.py` to treat that as an expected
-  fact. With only 4 templates × a continuous confidence float × a random
-  latency int, in practice they always did differ across the sampled runs
-  — but the confidence/latency alone make a repeat close to impossible,
-  not strictly impossible (a coincidental identical draw is technically
-  possible with 4 templates and a narrow uniform range). `run_stable.py`
-  handles this as a note rather than a failure so the script's exit
-  status doesn't depend on it.
+- Bất ngờ / thứ không diễn ra như dự tính: ban đầu tôi cho rằng log bất định
+  (`nd`) sẽ khác nhau rõ rệt ở đúng mọi cặp lần chạy, và viết `run_stable.py`
+  coi đó là một sự thật hiển nhiên. Với chỉ 4 template × một số thực confidence
+  liên tục × một số nguyên độ trễ ngẫu nhiên, trên thực tế chúng luôn khác nhau
+  qua các lần chạy được lấy mẫu — nhưng riêng confidence/độ trễ chỉ khiến việc
+  trùng lặp gần như bất khả, chứ không phải bất khả tuyệt đối (một lần rút trùng
+  ngẫu nhiên về lý thuyết vẫn có thể xảy ra với 4 template và một dải uniform
+  hẹp). `run_stable.py` xử lý chuyện này như một ghi chú chứ không phải một
+  thất bại, để exit status của script không phụ thuộc vào nó.
 
-- What I could NOT prove: real-world LLM sampling variance itself. The
-  `--live` path exists and is wired to the same boundary contract
-  (`live_llm_call` in `boundary.py`), and degrades safely (no crash, no
-  printed key) when `OPENROUTER_API_KEY` isn't set — see RUN.md §4 — but
-  I did not exercise it against the live OpenRouter API, per the
-  instruction to keep the proof network-independent by default. The stub's
-  "same label, different wording" behavior is a deliberate simplification,
-  not a measured property of any real model.
+- Điều tôi KHÔNG chứng minh được: bản thân phương sai lấy mẫu của một LLM thật.
+  Nhánh `--live` có tồn tại và được nối vào cùng contract ranh giới
+  (`live_llm_call` trong `boundary.py`), và suy giảm an toàn (không crash, không
+  in key) khi `OPENROUTER_API_KEY` không được đặt — xem RUN.md §4 — nhưng tôi đã
+  không chạy nó với API OpenRouter thật, theo đúng chỉ dẫn giữ cho bản chứng minh
+  mặc định không phụ thuộc mạng. Hành vi "cùng nhãn, khác câu chữ" của stub là
+  một sự đơn giản hóa có chủ đích, không phải tính chất đo được của model thật nào.
 
-- Scope note: this proof is about STRUCTURE (one function boundary, pure
-  code around it, explicit split between the two log halves), not about
-  making the non-deterministic output itself "more deterministic" (e.g.
-  temperature=0, seeding). Those are complementary techniques the concept
-  paragraph could mention as adjacent but distinct — they reduce *how much*
-  the boundary varies; the boundary discipline here is about containing
-  variance that exists, however much of it there is.
+- Ghi chú về phạm vi: bản chứng minh này nói về CẤU TRÚC (một ranh giới hàm duy
+  nhất, code thuần bao quanh, tách bạch tường minh giữa hai nửa của log), chứ
+  không nói về việc làm cho bản thân output bất định "deterministic hơn" (ví dụ
+  temperature=0, seeding). Đó là những kỹ thuật bổ trợ mà đoạn concept có thể
+  nhắc tới như thứ lân cận nhưng khác biệt — chúng giảm *mức độ* dao động của
+  ranh giới; còn kỷ luật ranh giới ở đây là về việc khoanh vùng phương sai đang
+  tồn tại, dù nhiều hay ít.

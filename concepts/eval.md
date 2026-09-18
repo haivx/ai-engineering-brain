@@ -1,28 +1,28 @@
 # Eval
 
-To know whether a model is "good enough" for your work → measure it, don't guess.
+Muốn biết một model có "đủ tốt" cho công việc của bạn hay không → hãy đo, đừng đoán.
 
-## Pitfall: public benchmarks
-"Model X matches o4-mini on MMLU" gives only a rough *prior* (the model isn't junk).
-It does NOT answer: "is this model good enough for MY task?"
-Benchmarks measure generic problems; your eval has to measure your actual task.
+## Cạm bẫy: benchmark công khai
+"Model X ngang o4-mini trên MMLU" chỉ cho bạn một *prior* thô (model này không phải đồ bỏ).
+Nó KHÔNG trả lời được: "model này có đủ tốt cho tác vụ CỦA TÔI không?"
+Benchmark đo các bài toán chung chung; eval của bạn phải đo đúng tác vụ thật của bạn.
 
-## How to do it: a small eval set drawn from your own task
-15–30 cases representative of what you usually do is enough to see the differences.
-For each case, define what "pass" means BEFORE running it.
-The infrastructure is already there: LiteLLM keeps the messages identical, you only change the `model` string → run the same prompts across many models.
+## Cách làm: một bộ eval nhỏ rút ra từ chính công việc của bạn
+15–30 case đại diện cho những gì bạn thường làm là đủ để thấy khác biệt.
+Với mỗi case, định nghĩa thế nào là "pass" TRƯỚC khi chạy.
+Hạ tầng thì đã có sẵn: LiteLLM giữ nguyên messages, bạn chỉ đổi chuỗi `model` → chạy cùng một bộ prompt qua nhiều model.
 
-## For coding/agents, "quality" = what RUNS, not what feels good
-Grade automatically with code — that's the only thing that scales:
-- **Does the code run / pass the tests?** — binary, not arguable. Generate code → run pytest → count the pass rate.
-- **Does the structured output match the schema?** — does Pydantic's `model_validate_json()` pass or fail? Count the ratio.
-- **Is the tool-calling correct?** — right tool, right arguments, right order? This is where cheap models fail most.
-- **Instruction-following?** — tell it "JSON only, no preamble": does it listen?
+## Với coding/agent, "chất lượng" = thứ CHẠY ĐƯỢC, không phải thứ đọc thấy sướng
+Chấm điểm tự động bằng code — đó là cách duy nhất mở rộng được:
+- **Code có chạy / có pass test không?** — nhị phân, không cãi được. Sinh code → chạy pytest → đếm pass rate.
+- **Structured output có khớp schema không?** — `model_validate_json()` của Pydantic pass hay fail? Đếm tỉ lệ.
+- **Tool-calling có đúng không?** — đúng tool, đúng tham số, đúng thứ tự? Đây là chỗ model rẻ hỏng nhiều nhất.
+- **Instruction-following?** — bảo nó "chỉ JSON, không lời dẫn": nó có nghe không?
 
-## Subjective tasks (writing, explanation) → LLM-as-judge
-Hand the output to a strong model to grade against a rubric, or do A/B pairwise comparison.
-Bias warning: judges favor long answers and favor output from their own model family. The judge's score is only a signal, not the truth.
+## Tác vụ chủ quan (viết lách, giải thích) → LLM-as-judge
+Đưa output cho một model mạnh chấm theo rubric, hoặc so sánh A/B từng cặp.
+Cảnh báo thiên lệch: judge thiên vị câu trả lời dài và thiên vị output từ chính dòng model của nó. Điểm của judge chỉ là một tín hiệu, không phải sự thật.
 
-## Realistic expectations
-- Extraction / classification / fixed formatting → cheap models are usually ON PAR with frontier ones; use them.
-- Multi-step reasoning / long agent loops → frontier models pull far ahead (compounding error).
+## Kỳ vọng thực tế
+- Extraction / classification / định dạng cố định → model rẻ thường NGANG NGỬA model frontier; cứ dùng.
+- Reasoning nhiều bước / agent loop dài → model frontier bỏ xa (compounding error).

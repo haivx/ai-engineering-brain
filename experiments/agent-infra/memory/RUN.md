@@ -1,25 +1,23 @@
-# RUN.md — cross-run session state vs. durable log proof
+# RUN.md — bằng chứng về session state xuyên nhiều lần chạy vs. log durable
 
-Environment: Python 3.9.6, standard library only. Run from
-`experiments/agent-infra/memory/` (or the repo root — paths in `run.py` are
-anchored to the script's own directory). `SESSION_MAX_RUNS = 2`, so 3
-separate invocations are enough to see a session accumulate, expire, and
-get replaced.
+Môi trường: Python 3.9.6, chỉ dùng thư viện chuẩn. Chạy từ
+`experiments/agent-infra/memory/` (hoặc từ gốc repo — các đường dẫn trong `run.py`
+đều neo theo thư mục của chính script). `SESSION_MAX_RUNS = 2`, nên 3 lần gọi
+riêng biệt là đủ để thấy một session tích lũy, hết hạn, rồi bị thay thế.
 
-Each `python3 run.py run` below is a **separate process invocation** — this
-is deliberately a cross-run proof, not a cross-step proof like `state/`.
+Mỗi lệnh `python3 run.py run` bên dưới là một **lần gọi tiến trình riêng biệt** —
+đây có chủ đích là bằng chứng xuyên nhiều lần chạy, không phải xuyên nhiều bước như `state/`.
 
-All output below is copied verbatim from actual terminal runs of `run.py`.
+Toàn bộ output bên dưới được chép nguyên văn từ các lần chạy `run.py` thật trên terminal.
 
 ---
 
-## Run #1 — fresh session created
+## Lần chạy #1 — tạo session mới
 
-Demonstrates: with no `session.json` on disk, a new session (`S1`) is
-created; its id is derived deterministically from how many
-`session_start` events already exist in `log.jsonl` (zero, here), not from
-a wall clock. Both tiers are updated: `log.jsonl` gets an append, and
-`session.json` is written fresh.
+Minh họa: khi không có `session.json` trên đĩa, một session mới (`S1`) được tạo;
+id của nó được suy ra một cách deterministic từ số sự kiện `session_start` đã có
+trong `log.jsonl` (ở đây là không có), chứ không từ đồng hồ hệ thống. Cả hai tầng
+đều được cập nhật: `log.jsonl` được ghi thêm, và `session.json` được ghi mới.
 
 ```
 === reset to clean slate ===
@@ -47,14 +45,14 @@ a wall clock. Both tiers are updated: `log.jsonl` gets an append, and
 
 ---
 
-## Run #2 — session continues, then hits its lifetime limit and expires
+## Lần chạy #2 — session tiếp tục, rồi chạm giới hạn tuổi thọ và hết hạn
 
-Demonstrates: the second invocation picks up `session.json` and continues
-`S1` (`run_count` 1 -> 2). Reaching `SESSION_MAX_RUNS` on this same run
-triggers **promotion**: a `session_summary` record carrying all of `S1`'s
-accumulated facts is appended to the durable log, and only then is
-`session.json` deleted. The session's state is not silently lost — it is
-folded into the permanent record before the ephemeral copy goes away.
+Minh họa: lần gọi thứ hai nhặt `session.json` lên và tiếp tục `S1` (`run_count`
+1 -> 2). Việc chạm `SESSION_MAX_RUNS` ngay trong lần chạy này kích hoạt
+**promotion**: một bản ghi `session_summary` mang toàn bộ dữ kiện tích lũy của
+`S1` được ghi thêm vào log durable, và chỉ sau đó `session.json` mới bị xóa.
+State của session không bị mất âm thầm — nó được gấp vào hồ sơ vĩnh viễn trước
+khi bản sao ephemeral biến mất.
 
 ```
 === RUN #2 (fresh process invocation, session S1 continues and hits SESSION_MAX_RUNS) ===
@@ -76,14 +74,14 @@ folded into the permanent record before the ephemeral copy goes away.
 
 ---
 
-## Run #3 — a brand new session starts; durable log now spans both sessions
+## Lần chạy #3 — một session hoàn toàn mới bắt đầu; log durable giờ trải qua cả hai session
 
-Demonstrates the cross-run accumulation claim: with `session.json` gone, the
-third invocation starts a fresh session (`S2` — derived from the fact that
-`log.jsonl` now contains one prior `session_start` event). `S1`'s history
-is untouched inside `log.jsonl`; `S2`'s new events are simply appended
-after it. The durable log now contains the full, ordered history of both
-sessions across all 3 runs; `session.json` reflects only the live session.
+Minh họa khẳng định về tích lũy xuyên nhiều lần chạy: khi `session.json` đã biến
+mất, lần gọi thứ ba bắt đầu một session mới (`S2` — suy ra từ việc `log.jsonl`
+giờ đã chứa một sự kiện `session_start` trước đó). Lịch sử của `S1` nằm nguyên vẹn
+trong `log.jsonl`; các sự kiện mới của `S2` chỉ đơn giản được ghi thêm phía sau.
+Log durable giờ chứa toàn bộ lịch sử có thứ tự của cả hai session qua cả 3 lần
+chạy; `session.json` chỉ phản ánh session đang sống.
 
 ```
 === RUN #3 (fresh process invocation, session S1 is gone -> a NEW session S2 starts) ===
@@ -112,11 +110,11 @@ sessions across all 3 runs; `session.json` reflects only the live session.
 
 ---
 
-## Reproducibility check
+## Kiểm tra khả năng tái lập
 
-Demonstrates: `reset` followed by the same 3-run sequence produces
-byte-identical output every time — session ids and facts are derived only
-from prior log content, never from wall-clock time or randomness.
+Minh họa: `reset` rồi chạy lại đúng chuỗi 3 lần chạy đó cho ra output giống nhau
+từng byte mọi lúc — session id và các dữ kiện chỉ được suy ra từ nội dung log
+trước đó, không bao giờ từ thời gian hệ thống hay yếu tố ngẫu nhiên.
 
 ```
 $ python3 run.py reset
@@ -129,7 +127,6 @@ $ diff /tmp/mem_repro1.txt /tmp/mem_repro2.txt && echo "REPRODUCIBLE: identical 
 REPRODUCIBLE: identical output across clean 3-run sequences
 ```
 
-Generated files (`session.json`, `log.jsonl`) are build artifacts of
-running the demo — they are removed by `python3 run.py reset` and are not
-meant to be committed as fixed evidence; the transcripts above are the
-durable record.
+Các file được sinh ra (`session.json`, `log.jsonl`) là build artifact của việc
+chạy demo — chúng bị xóa bởi `python3 run.py reset` và không nhằm mục đích commit
+như bằng chứng cố định; chính các bản ghi terminal ở trên mới là hồ sơ durable.

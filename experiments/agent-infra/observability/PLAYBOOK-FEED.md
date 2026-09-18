@@ -1,47 +1,45 @@
-# Feed for playbooks/build-eval-set.md
+# Đầu vào cho playbooks/build-eval-set.md
 
-Additions learned from building `experiments/agent-infra/observability/`.
-Written in the playbook's terse numbered-step voice. The Concepts Editor
-should merge these in — not restating steps 1-6 or the Principle already
-there.
+Những điểm bổ sung học được khi dựng `experiments/agent-infra/observability/`.
+Viết theo đúng giọng các bước đánh số ngắn gọn của playbook. Người biên tập
+concept nên hợp nhất chúng vào — không lặp lại bước 1-6 hay phần Nguyên tắc đã có sẵn.
 
-## Additions to the "Steps" list (structured logging, not print statements)
+## Bổ sung cho danh sách "Các bước" (logging có cấu trúc, không dùng lệnh print)
 
-7. Log every case as structured records (JSONL), not print statements —
-   one JSON object per line, one line per step. Each record needs at
-   least: `run_id` (shared by every record in one invocation of the
-   harness), `case_id` (shared by every record for one test case),
-   `step` (which stage produced this record), `status` (`ok` / `error` —
-   never fold "wrong answer" and "crashed" into the same bucket),
-   `duration_ms`, and `error` (`null` unless `status` is `error`).
-   `run_id` + `case_id` together are what let you `grep` one failure back
-   to its full step-by-step trace instead of re-running with prints added.
+7. Ghi log mọi case dưới dạng bản ghi có cấu trúc (JSONL), không phải lệnh
+   print — mỗi dòng một object JSON, mỗi bước một dòng. Mỗi bản ghi cần ít
+   nhất: `run_id` (dùng chung cho mọi bản ghi trong một lần gọi harness),
+   `case_id` (dùng chung cho mọi bản ghi của một test case), `step` (giai đoạn
+   nào sinh ra bản ghi này), `status` (`ok` / `error` — tuyệt đối đừng gộp
+   "trả lời sai" và "crash" vào cùng một rổ), `duration_ms`, và `error`
+   (`null` trừ khi `status` là `error`).
+   `run_id` + `case_id` đi cùng nhau chính là thứ cho phép bạn `grep` một lỗi
+   ngược về trace đầy đủ từng bước của nó, thay vì phải chạy lại với print cắm thêm.
 
-8. Give every pipeline stage its own record, not just a final
-   pass/fail per case. A case with 4 internal steps that crashes on step 1
-   should show `step: "<stage_name>"` at the point of failure — a single
-   "case failed" record can't tell you whether the crash happened before
-   or after the model was even called.
+8. Cho mỗi giai đoạn pipeline một bản ghi riêng, không chỉ một pass/fail cuối
+   cùng cho mỗi case. Một case có 4 bước nội bộ mà crash ở bước 1 phải hiện ra
+   `step: "<tên_giai_đoạn>"` tại điểm thất bại — một bản ghi "case failed" duy
+   nhất không cho bạn biết cú crash xảy ra trước hay sau khi model được gọi.
 
-9. Before changing anything, save the eval's result summary to a file
-   keyed by a short tag (`results/eval_<tag>.json`), not just to stdout.
-   You need last run's numbers on disk to diff against, not in scrollback.
+9. Trước khi đổi bất cứ thứ gì, hãy lưu bản tóm tắt kết quả eval vào một file
+   đặt theo một tag ngắn (`results/eval_<tag>.json`), không chỉ in ra stdout.
+   Bạn cần số liệu của lần chạy trước nằm trên đĩa để đem ra diff, chứ không
+   phải trôi trong màn hình terminal.
 
-## Addition to the "Principle" section (before/after comparison discipline)
+## Bổ sung cho phần "Nguyên tắc" (kỷ luật so sánh trước/sau)
 
-- When testing whether a change (threshold, prompt, model swap) helped,
-  change exactly one variable between two runs and diff the saved result
-  files, not just the two pass-rate headlines. A single "+X%" number can
-  hide a wash — e.g. N cases newly passing and M different cases newly
-  failing. Report both the net delta and the per-case flip list (which
-  case, which direction, old answer vs new answer) so "did this help"
-  and "what did it trade away" are both answered from the same table.
-- Verify the eval is actually sensitive to the variable you're testing
-  before trusting a comparison: if before/after produces zero flips, the
-  eval set doesn't exercise that variable and the comparison proves
-  nothing — fix the cases, don't report the null result as "no
-  regression."
-- A pass-rate number and a structured log answer different questions:
-  the number says how much is broken, the log says which case and why.
-  Keep both — a bare aggregate score with no per-case, per-step trace
-  behind it is not enough to debug a regression, only to notice one.
+- Khi kiểm tra xem một thay đổi (ngưỡng, prompt, đổi model) có giúp ích không,
+  hãy đổi đúng một biến giữa hai lần chạy và diff các file kết quả đã lưu, chứ
+  đừng chỉ so hai con số pass-rate tổng. Một con số "+X%" đơn lẻ có thể che giấu
+  một sự hòa vốn — ví dụ N case mới pass và M case khác mới fail. Hãy báo cáo cả
+  mức chênh ròng lẫn danh sách case bị lật (case nào, lật theo hướng nào, đáp án
+  cũ so với đáp án mới) để cả "cái này có giúp ích không" lẫn "nó đánh đổi mất
+  gì" đều được trả lời từ cùng một bảng.
+- Hãy xác minh rằng bộ eval thực sự nhạy với biến bạn đang kiểm tra trước khi
+  tin vào một phép so sánh: nếu trước/sau không có case nào bị lật, bộ eval
+  không hề động tới biến đó và phép so sánh chẳng chứng minh được gì — hãy sửa
+  lại bộ case, đừng báo cáo kết quả rỗng đó thành "không có regression".
+- Con số pass-rate và log có cấu trúc trả lời hai câu hỏi khác nhau: con số cho
+  biết hỏng bao nhiêu, log cho biết hỏng ở case nào và vì sao. Giữ cả hai — một
+  điểm số tổng trần trụi không có trace theo từng case, từng bước đứng sau thì
+  không đủ để debug một regression, chỉ đủ để phát hiện ra nó.
