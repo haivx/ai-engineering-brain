@@ -1,0 +1,18 @@
+sequenceDiagram
+    participant W as agentWorkflow (process A)
+    participant DB as Postgres (DBOS tables)
+    participant H as Human / inspector
+    participant W2 as agentWorkflow (process B)
+
+    W->>DB: step: emit approval.requested (args shown to human)
+    W->>DB: DBOS.recv("approval") - suspend, pending state persisted
+    Note over W: SIGKILL while waiting
+    W2->>DB: DBOS.launch() - recover, replay cached steps
+    W2->>DB: reaches the same recv, waits again
+    H->>DB: POST /api/approve - DBOS.send(workflowId, approved)
+    DB-->>W2: recv returns the decision
+    alt approved
+        W2->>DB: step: issueRefund (exactly once)
+    else rejected or timeout (null)
+        W2->>W2: tool-result "not approved, do not retry"
+    end

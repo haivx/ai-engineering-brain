@@ -1,0 +1,11 @@
+◇ injected env (2) from .dev.vars // tip: ◈ secrets for agents [www.dotenvx.com]
+✓ estimateTokens ~ chars/4 (400 chars → 100)
+✓ estimateTokens đếm cả content dạng mảng (tool results)
+✓ context[0] là system prompt
+✓ context[1] là task gốc — PINNED, không bao giờ bị summarize mất
+✓ không có summary → không chèn message summary
+✓ có summary → nằm SAU task, TRƯỚC recent turns
+✓ recent turns giữ verbatim, đúng thứ tự, ở cuối
+✓ KEEP < MAX (có hysteresis, không compact mỗi turn)
+
+ALL CHECKS PASSED

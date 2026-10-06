@@ -1,0 +1,23 @@
+CHAOS — CHAOS_FAIL=technical, supervised mode
+
+server #1 up (log: learn/.runs/server-1.log)
+   workflow.started
+workflow f4d4964f-87e2-4328-87d9-0432258a6c02
+   PLAN: billing, technical, sales
+     started technical
+     started sales
+     started billing
+     ✓ sales: mock findings: relevant facts found.
+     ✓ billing: mock findings: relevant facts found.
+     ✗ technical FAILED: Error: investigator 'technical' crashed (CHAOS_FAIL)
+   model: Hi! We refunded $49, the Safari bug is TICKET-4412 (use Chrome), and 50-seat pricing is attached.
+   workflow.completed
+
+audit
+  events: 10 · tool calls by name: {}
+  ✓ plan.created emit đúng 1 lần (plan là artifact)
+  ✓ dispatch nhiều sub-agent (3)
+  ✓ sub-agent 'technical' fail và được ghi nhận
+  ✓ supervisor KHÔNG chết — vẫn workflow.completed (graceful degradation)
+
+ALL CHECKS PASSED

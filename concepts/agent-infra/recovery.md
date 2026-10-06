@@ -40,13 +40,33 @@ prevented from firing twice. This is distinct from retry/fallback/loop-guard
 around a single call — real-time resilience within a step, not resumability
 across a restart — and no experiment here covers that.
 
+## Side effects across a restart: completed steps, not saved messages
+
+A second experiment ran the same kill-and-restart against an agent loop
+whose tools send customer emails. Without checkpoints, the naive fix
+(resubmit the task) sent the first customer's email twice: nothing recorded
+that it had already gone, and saving the chat history would not have helped.
+With every model turn and tool call as a durable workflow step, the
+restarted process resumed the same workflow, skipped every completed call,
+and each customer got exactly one email. Durability means knowing which
+side effects already happened.
+
+The guarantee has an edge: completed steps are exactly-once, but a step
+that had fired its effect and not yet recorded it runs again. Closing that
+gap takes an idempotency key on the call itself, derived from something
+stable across replay (the workflow id plus the call id from a cached model
+step). That key was designed but not built.
+
+A wait for a human is recoverable the same way: killed while suspended on an
+approval, the workflow replayed to the same wait after restart and acted
+once on the decision (see `guardrails.md`).
+
 ## What this doesn't prove
 
 Concurrent or parallel step execution, checkpointing partway through one
-expensive step, recovery for non-idempotent side effects (a payment, a sent
-email — these need a different mechanism, such as a dedup key), and a
-crash landing during the checkpoint file's own atomic write are all
-untested here.
+expensive step, an idempotency key for the in-flight step, and a crash
+landing during the checkpoint file's own atomic write are all untested
+here.
 
 ```mermaid
 sequenceDiagram
@@ -75,4 +95,4 @@ sequenceDiagram
     D->>D: compare final report to uninterrupted<br/>happy-path run -> byte-identical
 ```
 
-Evidence: `experiments/agent-infra/recovery/` (`RUN.md`, `NOTES.md`, `diagram.mmd` / `diagram.png`).
+Evidence: `experiments/agent-infra/recovery/` (`RUN.md`, `NOTES.md`, `diagram.mmd` / `diagram.png`); agent-loop side effects and approval waits: `experiments/agent-infra/harness/` (`RUN.md` §1, §2, §7, `logs/01_*.log`, `logs/02_*.log`, `logs/07_*.log`).

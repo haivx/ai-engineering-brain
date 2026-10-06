@@ -1,0 +1,36 @@
+CRASH TEST — SIGKILL server sau 4 tool.completed, rồi khởi động lại
+
+server #1 up (log: learn/.runs/server-1.log)
+   workflow.started
+workflow a3ce7401-f10d-4e94-b786-dc328aaa1c7b
+   → classifyItem({"itemId":"item-1","category":"other"})
+     ← {"ok":true,"itemId":"item-1","category":"other"}
+   → draftReply({"itemId":"item-1","message":"Reply for item-1"})
+     ← {"ok":true,"draftId":"draft-item-1"}
+   → sendReply({"itemId":"item-1","draftId":"draft-item-1"})
+     ← {"sent":true,"itemId":"item-1","draftId":"draft-item-1"}
+   → classifyItem({"itemId":"item-2","category":"technical"})
+     ← {"ok":true,"itemId":"item-2","category":"technical"}
+
+💥 SIGKILL server (đã có 1 sendReply trước crash)
+
+server #2 up (log: learn/.runs/server-2.log)
+server log: Recovering 1 workflows from application version 99f3d436a66d9d16003f6d99bf146703
+history replay sau restart: 19 event của workflow này
+   → classifyItem({"itemId":"item-3","category":"sales"})
+     ← {"ok":true,"itemId":"item-3","category":"sales"}
+   → draftReply({"itemId":"item-3","message":"Reply for item-3"})
+     ← {"ok":true,"draftId":"draft-item-3"}
+   → sendReply({"itemId":"item-3","draftId":"draft-item-3"})
+     ← {"sent":true,"itemId":"item-3","draftId":"draft-item-3"}
+   model: All items handled. Summary: done.
+   workflow.completed
+
+audit
+  events: 31 · tool calls by name: {"classifyItem":3,"draftReply":3,"sendReply":3}
+  ✓ timeline sống sót qua restart (history replay có event cũ)
+  ✓ CÙNG workflow id resume và hoàn thành
+  ✓ không tool call nào bị chạy lại (repeated: 0)
+  ✓ mỗi item chỉ sendReply 1 lần {"item-1":1,"item-2":1,"item-3":1}
+
+ALL CHECKS PASSED

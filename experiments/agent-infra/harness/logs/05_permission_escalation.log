@@ -1,0 +1,8 @@
+
+== permission checked against currentAgent ==
+  ALLOW handoff → currentAgent is now billing
+  ALLOW issueRefund {"chargeId":"ch_002","amountCents":500000} (checked against billing)
+
+== permission checked against actingAgent ==
+  ALLOW handoff → currentAgent is now billing
+  DENY  issueRefund (checked against triage)

@@ -1,0 +1,19 @@
+flowchart LR
+    subgraph HO["Handoff: control moves sideways"]
+        direction TB
+        T["triage turn"] -->|"tool call: handoff(to billing)"| X{{"harness intercepts,<br/>swaps currentAgent"}}
+        X --> B["billing continues the<br/>SAME conversation"]
+    end
+    subgraph SV["Supervisor: control stays with the parent"]
+        direction TB
+        P["plan (structured, enum agents)"] --> F["Promise.allSettled"]
+        F --> I1["billing investigator<br/>read-only, own context"]
+        F --> I2["technical investigator<br/>read-only, own context"]
+        F --> I3["sales investigator<br/>read-only, own context"]
+        I1 --> FI["fan-in: fulfilled to findings,<br/>rejected to failedAgents"]
+        I2 --> FI
+        I3 --> FI
+        FI --> S["synthesize ONE reply<br/>(recommends, never promises)"]
+    end
+    style X fill:#fde68a,stroke:#92400e
+    style FI fill:#bbf7d0,stroke:#166534
