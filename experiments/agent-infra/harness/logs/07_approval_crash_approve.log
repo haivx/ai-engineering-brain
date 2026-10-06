@@ -1,0 +1,35 @@
+HITL — crash trong lúc chờ duyệt, rồi APPROVE sau restart
+
+server #1 up (log: learn/.runs/server-1.log)
+   workflow.started
+workflow 4e9086b6-b131-4a1e-900d-d02d9d1a6f21
+   ↪ HANDOFF triage → billing: customer needs a refund (money moved)
+   → runCode({"code":"const cs = await tools.getCharges('cus_88121'); return cs.filter(c => c.amount ==…)
+     ← {"ok":true,"result":[{"id":"ch_001","amount":4900,"date":"2026-05-01","description":"Pro p…
+   ⏸ APPROVAL REQUESTED: issueRefund({"customerId":"cus_88121","chargeId":"ch_002","amountCents":4900})
+
+💥 SIGKILL server trong lúc workflow đang SUSPENDED
+
+server #2 up (log: learn/.runs/server-2.log)
+server log: Recovering 1 workflows from application version 99f3d436a66d9d16003f6d99bf146703
+→ POST /api/approve/4e9086b6-b131-4a1e-900d-d02d9d1a6f21 { approved: true }
+   ▶ approval resolved: APPROVED
+   → issueRefund({"customerId":"cus_88121","chargeId":"ch_002","amountCents":4900})
+     ← {"refunded":true,"customerId":"cus_88121","chargeId":"ch_002","amountCents":4900}
+   → draftReply({"itemId":"refund","message":"Refunded $49.00 for ch_002."})
+     ← {"ok":true,"draftId":"draft-refund"}
+   → sendReply({"itemId":"refund","draftId":"draft-refund"})
+     ← {"sent":true,"itemId":"refund","draftId":"draft-refund"}
+   model: All items handled. Summary: done.
+   workflow.completed
+
+audit
+  events: 20 · tool calls by name: {"runCode":1,"issueRefund":1,"draftReply":1,"sendReply":1}
+  ✓ route /api/approve/:workflowId tồn tại
+  ✓ issueRefund KHÔNG chạy trước khi có quyết định
+  ✓ approval.resolved được emit sau restart (recv() sống sót qua crash)
+  ✓ issueRefund chạy đúng 1 lần (1)
+  ✓ issueRefund chạy SAU approval.resolved
+  ✓ workflow hoàn thành
+
+ALL CHECKS PASSED

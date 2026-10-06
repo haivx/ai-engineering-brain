@@ -1,0 +1,22 @@
+✓ code mode tính đúng refund $49
+    {"ok":true,"result":{"duplicateId":"ch_002","refundDollars":49},"logs":[]}
+✓ while(true){} bị kill bởi timeout
+    {"ok":false,"error":"Error: Script execution timed out after 500ms","logs":[]}
+✓ async hang → structured timeout error
+    {"ok":false,"error":"execution timed out after 500ms","logs":[]}
+✓ require / process / fetch không tồn tại trong context
+    {"ok":true,"result":["undefined","undefined","undefined"],"logs":[]}
+✓ bug trả về { ok:false, error } thay vì throw
+    {"ok":false,"error":"ReferenceError: totallyUndefined is not defined","logs":[]}
+✓ console.log được capture
+    {"ok":true,"result":true,"logs":["hello 42"]}
+
+⚠ vm escape qua hàm host: {"ok":true,"result":{"escaped":true,"pid":843},"logs":[]}
+  → Model-written code vừa lấy được `process` của host (có thể process.exit, đọc env, require qua process.mainModule…).
+    Đây là lý do production dùng isolate / microVM (isolated-vm, e2b, Firecracker). Xem Module 3 · Break it.
+
+⚠ microtask flood `while (true) { await null }`: HOST BỊ TREO (child bị kill sau 6s).
+  → vm timeout chỉ canh phần sync; vòng microtask bỏ đói event loop nên setTimeout backstop cũng không bao giờ chạy.
+    Trong server thật: một dòng model-written code = toàn bộ harness ngừng phản hồi. Xem Module 3 · Break it #2.
+
+ALL CHECKS PASSED

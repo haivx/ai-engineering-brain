@@ -35,6 +35,20 @@ capturing its output once to a fixture and replaying it back through the
 pipeline makes the entire log — including the previously varying half —
 byte-identical across runs.
 
+## Durable replay turns this into a hard requirement
+
+In a durable workflow, the boundary is the step: each model call and tool
+call is recorded once, and after a crash the workflow body re-runs from the
+top while completed steps return their recorded output without executing.
+Steps are matched by their position in the run, not by their input. So the
+code between steps must take the same path given the same recorded outputs,
+or recorded results land on the wrong steps. In-memory variables (the
+conversation turns, the running summary, the current agent) are never saved;
+they are rebuilt identically because every value put into them came from a
+recorded step. A replay toy with no database and no model showed this
+directly: the turns array started empty, was rebuilt from two recorded
+steps, and only the remaining steps actually ran.
+
 ## What this doesn't prove
 
 This is a structural claim, not variance reduction — reducing how much the
@@ -65,4 +79,4 @@ flowchart LR
     style DetLog fill:#eef,stroke:#339
 ```
 
-Evidence: `experiments/agent-infra/determinism/` (`RUN.md`, `NOTES.md`, `diagram.mmd` / `diagram.png`).
+Evidence: `experiments/agent-infra/determinism/` (`RUN.md`, `NOTES.md`, `diagram.mmd` / `diagram.png`); durable replay: `experiments/agent-infra/harness/` (`RUN.md` §2, `proofs/replay_toy.ts`, `logs/02_replay_toy.log`).

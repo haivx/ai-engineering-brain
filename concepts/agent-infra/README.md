@@ -24,20 +24,28 @@ folder, per this repo's proof-before-prose rule.
 - `recovery.md` — checkpoint-and-resume across a real process restart: a
   checkpoint is only trustworthy paired with atomic commits.
 
+- `tool-calling.md` — the harness, not the SDK, owns tool execution;
+  everything inside one step must be safe to re-run; an in-process VM is
+  not a sandbox.
+- `context-engineering.md` — history vs state vs context; compact by
+  token budget, whole turns only; a summary that drops a side effect
+  becomes a duplicate side effect.
+- `orchestration.md` — handoff (control moves sideways) vs supervisor
+  (control stays with the parent); synthesis can turn a recommendation
+  into a promise.
+- `guardrails.md` — permission checked at execution against the agent
+  that decided; durable human approval; the decision must be bound to the
+  action.
+
 `state.md` and `memory.md` are deliberately separate: "what dies at the
 end of one run" versus "what persists across runs, and for how long."
 Neither covers the other's scope.
 
-## Still opening framing only (no experiment yet)
-
-These came from the cluster scaffold and remain short framing paragraphs.
-Per this repo's proof-before-prose rule, each gets a deep dive only once
-an experiment lands in `experiments/agent-infra/<topic>/` — not before:
-
-- `context-engineering.md` — what goes into context each step
-- `tool-calling.md` — the model to world interface
-- `orchestration.md` — single loop vs multi-agent, sub-agents
-- `guardrails.md` — validate before acting
+The last four share one experiment, `experiments/agent-infra/harness/`: a
+single agent harness exercised from several angles, rather than one folder
+per concept. It also adds agent-loop evidence to `recovery.md` and
+`determinism.md`. The practical checklist distilled from it is
+`playbooks/durable-agent-checklist.md`.
 
 ## Wrap-up: which of these would silently break first?
 

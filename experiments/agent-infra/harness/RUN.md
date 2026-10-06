@@ -1,0 +1,173 @@
+# RUN.md — what was run, what came out
+
+Two kinds of evidence, kept apart on purpose:
+
+- **Scripted runs** (`logs/`): a headless driver (`learn/scripts/drive.ts` in
+  the course repo's learning kit) spawns the server, submits a task over the
+  WebSocket, `SIGKILL`s the process at a chosen point, restarts it, then
+  audits the event log. These use a **scripted fake model** so they are cheap
+  and repeatable. They prove properties of the *harness* (durability,
+  approval gating, fan-in), not the behaviour of a real LLM. Driver output is
+  in Vietnamese; the ✓/✗ lines are what matter.
+- **Live runs** (sections marked *live*): the same harness driven from the
+  browser inspector with a real model (`gpt-5.5`), 2026-10-04 → 10-06.
+  Transcribed from the session; no raw logs were kept, so treat exact
+  numbers as observed, not reproducible.
+
+Infra for the scripted runs: Node 22, `tsx`, DBOS SDK 4.19, Postgres (local
+embedded instance).
+
+## §1 Brittle loop: crash, then the naive "just retry"
+
+`logs/01_brittle_crash_retry.log`. Module-1 harness (in-memory `messages`,
+in-memory event bus). Killed after 4 tool calls, restarted, then the task was
+resubmitted because nothing resumed it.
+
+```
+✗ timeline sống sót qua restart            (history replay: 0 events)
+✗ CÙNG workflow id resume và hoàn thành    (no "Recovering" line)
+✗ qua cả 2 lần chạy, mỗi khách chỉ nhận 1 email {"item-1":2,"item-2":1,"item-3":1}
+```
+
+The retry re-sent item-1's email: nothing recorded that it had already gone.
+
+## §2 Durable loop: crash, restart, resume
+
+`logs/02_durable_crash.log`. Module-2+ harness (every model turn and tool
+call wrapped in `DBOS.runStep`; event log in Postgres). Same kill point.
+
+```
+server log: Recovering 1 workflows from application version 99f3…
+✓ timeline sống sót qua restart
+✓ CÙNG workflow id resume và hoàn thành
+✓ không tool call nào bị chạy lại (repeated: 0)
+✓ mỗi item chỉ sendReply 1 lần {"item-1":1,"item-2":1,"item-3":1}
+```
+
+`logs/02_replay_toy.log` (`proofs/replay_toy.ts`) isolates the mechanism with
+no DB and no LLM: the workflow body re-runs from line 1 after the crash,
+`turns` starts empty again, the two completed steps return cached output, the
+in-memory `turns` array is rebuilt identically, and only steps 2–3 execute.
+`real model calls: 4 (not 6)`.
+
+*Live*: Ctrl-C mid-run with the real model, restart → `Recovering 1
+workflows`, the same workflow finished, timeline intact after a browser
+refresh (the inspector does not auto-reconnect).
+
+## §3 Sandbox and Code Mode
+
+`logs/03_sandbox_checks.log`. Six guard checks pass (sync infinite loop killed
+by timeout, async hang → structured timeout error, `require`/`process`/`fetch`
+absent, bugs returned as `{ok:false, error}`, `console.log` captured, Code
+Mode computes the $49 duplicate refund). Two probes then break the sandbox:
+
+```
+⚠ vm escape qua hàm host: {"ok":true,"result":{"escaped":true,"pid":…}}
+⚠ microtask flood `while (true) { await null }`: HOST BỊ TREO (child bị kill sau 6s)
+```
+
+1. `tools.getCharges.constructor.constructor("return process")()` returns the
+   host's `process` — any host function passed into a `node:vm` context is a
+   ladder out of it.
+2. An awaiting infinite loop slips past the sync timeout and starves the
+   event loop, so the `setTimeout` backstop never fires: the whole host
+   process hangs (proved in a child process killed after 6 s).
+
+*Live*: the model wrote one `runCode` program (fetch charges → group by
+amount+description → refund $49.00) instead of chaining tool calls.
+
+## §4 Memory: History / State / Context
+
+`logs/04_memory_contract.log`: context is assembled as system → pinned task
+→ summary (only if present) → recent turns verbatim; token estimate counts
+array content (tool results); `KEEP < MAX` (hysteresis).
+
+*Live*, summarizer eval (`--live` check: does the summary keep `item-1`,
+`49`, `ch_00`, `draft-item-1`, `item-2`, `4412`, and "item-1 was SENT"?):
+
+| Prompt | Passed | What the output actually looked like |
+|---|---|---|
+| v1 "keep side effects, money, toolCallId, workflowId" | 7/7 | ~30 lines of markdown; `toolCallId: a`; "No workflowId was provided"; **"Ticket created/referenced: TICKET-4412"** although no ticket was created |
+| v2 "read by the same agent next turn; status ∈ classified/drafted/SENT; only record actions that appear as tool calls; terse" | 7/7 | 2 lines: `item-1: SENT; … refundDollars=49 …` / `item-2: classified; ticket=TICKET-4412 …` |
+
+*Live*, 5-item task with compaction at MAX 500 / KEEP 200 tokens: context
+estimate per step oscillated (steps 14–19: ~823, 1177, 958, 643, 334, 935)
+with the summary held at 224–266 chars, instead of growing every turn.
+Afterwards, from the Postgres event log:
+
+```sql
+SELECT data->'args'->>'itemId' AS item, count(*) FROM event_log
+WHERE data->>'type'='tool.requested' AND data->>'name'='sendReply' GROUP BY 1;
+-- item-1..item-5 → 1 each
+```
+
+## §5 Handoff and least privilege
+
+`logs/05_permission_escalation.log` (`proofs/permission_escalation.ts`). One
+turn generated by `triage` contains `[handoff→billing, issueRefund]`:
+
+```
+== permission checked against currentAgent ==
+  ALLOW handoff → currentAgent is now billing
+  ALLOW issueRefund {"chargeId":"ch_002","amountCents":500000} (checked against billing)
+== permission checked against actingAgent ==
+  ALLOW handoff → currentAgent is now billing
+  DENY  issueRefund (checked against triage)
+```
+
+*Live* trace for "charged twice, wants the duplicate refunded":
+`triage: classifyItem → runCode` → `↪ handoff triage → billing` →
+`billing: runCode (re-verified independently) → issueRefund → draftReply →
+sendReply`. A memory compaction fired mid-handoff and the summary still
+carried `ch_001 4900, ch_002 4900`.
+
+## §6 Supervisor
+
+`logs/06_supervisor_chaos.log` (`CHAOS_FAIL=technical`): plan emitted once, 3
+investigators dispatched, technical failed and was recorded, workflow still
+completed.
+
+*Live*, three runs of "double-charged + Safari export broken + 50-seat
+pricing":
+
+1. Investigator registry accidentally missing `technical` and `sales` (the
+   plan's `z.enum` allowed them; `Record<string, …>` let the typecheck pass).
+   2/3 failed, supervisor completed, reply covered billing and promised
+   follow-up — **and said "We'll refund the duplicate charge ch_002 for
+   $49.00", although investigators are read-only and nothing was refunded.**
+2. After adding to the synthesizer prompt "investigators only investigate —
+   no actions have been taken; never promise refunds…" and passing
+   `failedAgents` explicitly: "The recommended next step, pending review, is
+   to issue either a $49.00 refund or account credit…"; sales gave
+   $20/seat/month, "$1,000/month" (computed by the model, not in the KB),
+   pricing PDF; technical (chaos) acknowledged as follow-up.
+3. Same message through the single-agent loop (Supervised toggle off):
+   triage handed off, billing refunded immediately (pre-approval gate) and
+   also answered the Safari and pricing points itself.
+
+## §7 Human-in-the-loop
+
+`logs/07_approval_crash_approve.log` and `…_reject.log`: workflow reaches
+`issueRefund`, emits `approval.requested`, suspends on
+`DBOS.recv("approval", 86400)`; the server is `SIGKILL`ed while waiting,
+restarted (`Recovering 1 workflows`), then the decision is POSTed.
+
+```
+approve: ✓ no issueRefund before the decision · ✓ approval.resolved after restart
+         ✓ issueRefund exactly once · ✓ issueRefund after approval.resolved
+reject:  ✓ no issueRefund at all · ✓ workflow completed
+```
+
+`logs/07_dbos_message_queue.log` (`proofs/dbos_message_queue.ts`): two
+`send`s for the first approval, then a second `recv` on the same topic:
+
+```
+RESULT {"first":{"approved":true},"second":{"approved":true},"secondWaitedMs":5}
+```
+
+The second approval was satisfied by the queued duplicate in 5 ms — nobody
+reviewed it.
+
+*Live*: approval card showed "Refund $49.00 to cus_88121 (charge ch_002)";
+Approve → `issueRefund → draftReply → sendReply`; Reject → no `issueRefund`,
+customer told the refund was "routed for manual billing review".

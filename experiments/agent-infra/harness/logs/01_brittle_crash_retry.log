@@ -1,0 +1,57 @@
+CRASH TEST — SIGKILL server sau 4 tool.completed, rồi khởi động lại
+
+server #1 up (log: learn/.runs/server-1.log)
+   workflow.started
+workflow 8be70c19-10f1-48cb-800d-e696383da392
+   → classifyItem({"itemId":"item-1","category":"other"})
+     ← {"ok":true,"itemId":"item-1","category":"other"}
+   → draftReply({"itemId":"item-1","message":"Reply for item-1"})
+     ← {"ok":true,"draftId":"draft-item-1"}
+   → sendReply({"itemId":"item-1","draftId":"draft-item-1"})
+     ← {"sent":true,"itemId":"item-1","draftId":"draft-item-1"}
+   → classifyItem({"itemId":"item-2","category":"technical"})
+     ← {"ok":true,"itemId":"item-2","category":"technical"}
+
+💥 SIGKILL server (đã có 1 sendReply trước crash)
+
+server #2 up (log: learn/.runs/server-2.log)
+(server log không có dòng 'Recovering' — không có workflow nào được recover)
+history replay sau restart: 0 event của workflow này
+
+audit
+  events: 0 · tool calls by name: {}
+  ✗ timeline sống sót qua restart (history replay có event cũ)
+      → event log đang ở memory → Module 2: chuyển bus sang Postgres
+  ✗ CÙNG workflow id resume và hoàn thành
+      → không ai resume workflow → Module 2: DBOS.launch() recover workflow dở dang
+  ✓ không tool call nào bị chạy lại (repeated: 0)
+  ✓ mỗi item chỉ sendReply 1 lần {}
+
+--retry: workflow đã mất → 'fix' ngây thơ: submit lại task từ đầu
+
+   workflow.started
+workflow 2c85bdec-9f9a-4d42-b6f9-381ec6468ec8
+   → classifyItem({"itemId":"item-1","category":"other"})
+     ← {"ok":true,"itemId":"item-1","category":"other"}
+   → draftReply({"itemId":"item-1","message":"Reply for item-1"})
+     ← {"ok":true,"draftId":"draft-item-1"}
+   → sendReply({"itemId":"item-1","draftId":"draft-item-1"})
+     ← {"sent":true,"itemId":"item-1","draftId":"draft-item-1"}
+   → classifyItem({"itemId":"item-2","category":"technical"})
+     ← {"ok":true,"itemId":"item-2","category":"technical"}
+   → draftReply({"itemId":"item-2","message":"Reply for item-2"})
+     ← {"ok":true,"draftId":"draft-item-2"}
+   → sendReply({"itemId":"item-2","draftId":"draft-item-2"})
+     ← {"sent":true,"itemId":"item-2","draftId":"draft-item-2"}
+   → classifyItem({"itemId":"item-3","category":"sales"})
+     ← {"ok":true,"itemId":"item-3","category":"sales"}
+   → draftReply({"itemId":"item-3","message":"Reply for item-3"})
+     ← {"ok":true,"draftId":"draft-item-3"}
+   → sendReply({"itemId":"item-3","draftId":"draft-item-3"})
+     ← {"sent":true,"itemId":"item-3","draftId":"draft-item-3"}
+   model: All items handled. Summary: done.
+   workflow.completed
+  ✗ qua cả 2 lần chạy, mỗi khách chỉ nhận 1 email {"item-1":2,"item-2":1,"item-3":1}
+      → retry không biết side effect nào ĐÃ xảy ra → gửi trùng. Durability = biết cái gì đã chạy, không chỉ là 'chạy lại'.
+
+3 check FAILED

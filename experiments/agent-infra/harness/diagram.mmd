@@ -1,0 +1,37 @@
+flowchart TB
+    Start(["workflow starts / DBOS.launch() replays it after a crash"]) --> Compact
+
+    subgraph LOOP["agentWorkflow — body must be deterministic"]
+        direction TB
+        Compact{"turns over token budget?"} -->|yes| Sum["summarize old turns<br/>(step)"]
+        Compact -->|no| Hydrate
+        Sum --> Hydrate["buildContext: system + pinned task<br/>+ summary + recent turns"]
+        Hydrate --> Model["model turn on currentAgent<br/>(step: model-N)"]
+        Model --> Calls{"for each tool call<br/>actingAgent = agent that made this turn"}
+        Calls --> Perm{"tool in actingAgent.tools?"}
+        Perm -->|no| Deny["tool-result: not allowed"]
+        Perm -->|yes| Kind{"which tool?"}
+        Kind -->|handoff| Hand["emit agent.handoff (step)<br/>currentAgent = target<br/>for the NEXT turn"]
+        Kind -->|needs approval| Ask["emit approval.requested (step)"]
+        Ask --> Wait[["DBOS.recv — suspended,<br/>pending state in Postgres"]]
+        Wait -->|approved| Run
+        Wait -->|rejected or timeout| Rej["tool-result: not approved,<br/>do not retry"]
+        Kind -->|ordinary| Run["toolStep (step: tool-id)<br/>runCode → sandbox, read-only API"]
+    end
+
+    Deny --> Next
+    Hand --> Next
+    Rej --> Next
+    Run --> Next(["push turn, next loop iteration"])
+    Next --> Compact
+
+    Approver(["human: POST /api/approve"]) -. "DBOS send" .-> Wait
+    Model -. "cached on replay" .-> Ckpt[("DBOS checkpoint tables:<br/>replay source")]
+    Run -. "cached on replay" .-> Ckpt
+    Model -. "emit" .-> Log[("event_log:<br/>projection for UI and evals")]
+    Run -. "emit" .-> Log
+
+    style Wait fill:#fde68a,stroke:#92400e
+    style Perm fill:#fecaca,stroke:#991b1b
+    style Ckpt fill:#bbf7d0,stroke:#166534
+    style Log fill:#bfdbfe,stroke:#1e3a8a
